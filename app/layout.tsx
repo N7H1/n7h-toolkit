@@ -6,6 +6,7 @@ interface UserProfile {
   id: string;
   name: string;
   role: string;
+  avatar: string;
 }
 
 interface Message {
@@ -13,55 +14,38 @@ interface Message {
   senderId: string;
   senderName: string;
   text: string;
-  fileUrl?: string;
-  fileName?: string;
-  fileType?: "image" | "file";
   timestamp: string;
 }
 
-interface ReportEntry {
-  id: string;
-  text: string;
-  timestamp: string;
-}
-
-interface UserPrivateData {
+interface UserData {
   note: string;
-  noteFileUrl?: string;
-  noteFileName?: string;
-  noteFileType?: "image" | "file";
-  currentReport: string;
-  reportHistory: ReportEntry[];
+  report: string;
 }
 
 const USERS: UserProfile[] = [
-  { id: "n7h", name: "N7H", role: "الأدمن" },
-  { id: "azzam", name: "عزام", role: "عضو" },
-  { id: "rakan", name: "راكان", role: "عضو" },
-  { id: "farraj", name: "فراج", role: "عضو" },
-  { id: "mohammed", name: "محمد", role: "عضو" },
-  { id: "raad", name: "رعد", role: "عضو" },
+  { id: "n7h", name: "N7H", role: "الأدمن", avatar: "👑" },
+  { id: "azzam", name: "عزام", role: "عضو", avatar: "⚡" },
+  { id: "rakan", name: "راكان", role: "عضو", avatar: "🛡️" },
+  { id: "farraj", name: "فراج", role: "عضو", avatar: "🔥" },
+  { id: "mohammed", name: "محمد", role: "عضو", avatar: "🎯" },
+  { id: "raad", name: "رعد", role: "عضو", avatar: "⚡" },
 ];
 
 export default function N7HToolkit() {
   const [currentUser, setCurrentUser] = useState<UserProfile>(USERS[0]);
   const [selectedTab, setSelectedTab] = useState<string>("general");
-  const [generalSubTab, setGeneralSubTab] = useState<string>("chat");
-
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [newMessageText, setNewMessageText] = useState("");
-  const [attachedChatFile, setAttachedChatFile] = useState<{ url: string; name: string; type: "image" | "file" } | null>(null);
-
-  const [userPrivateData, setUserPrivateData] = useState<Record<string, UserPrivateData>>({});
+  const [userDataMap, setUserDataMap] = useState<Record<string, UserData>>({});
 
   useEffect(() => {
     const savedChat = localStorage.getItem("n7h_chat_messages");
     if (savedChat) {
       try { setChatMessages(JSON.parse(savedChat)); } catch (e) {}
     }
-    const savedPrivate = localStorage.getItem("n7h_private_data");
-    if (savedPrivate) {
-      try { setUserPrivateData(JSON.parse(savedPrivate)); } catch (e) {}
+    const savedData = localStorage.getItem("n7h_user_data");
+    if (savedData) {
+      try { setUserDataMap(JSON.parse(savedData)); } catch (e) {}
     }
     const savedUser = localStorage.getItem("n7h_current_user");
     if (savedUser) {
@@ -74,319 +58,155 @@ export default function N7HToolkit() {
   }, [chatMessages]);
 
   useEffect(() => {
-    localStorage.setItem("n7h_private_data", JSON.stringify(userPrivateData));
-  }, [userPrivateData]);
+    localStorage.setItem("n7h_user_data", JSON.stringify(userDataMap));
+  }, [userDataMap]);
 
   const handleSelectUser = (user: UserProfile) => {
     setCurrentUser(user);
     localStorage.setItem("n7h_current_user", JSON.stringify(user));
   };
 
-  const getCurrentPrivateData = (): UserPrivateData => {
-    return (
-      userPrivateData[currentUser.id] || {
-        note: "",
-        currentReport: "",
-        reportHistory: [],
-      }
-    );
+  const getUserData = (userId: string): UserData => {
+    return userDataMap[userId] || { note: "", report: "" };
   };
 
-  const updateCurrentPrivateData = (updates: Partial<UserPrivateData>) => {
-    const currentData = getCurrentPrivateData();
-    setUserPrivateData((prev) => ({
+  const updateUserData = (userId: string, updates: Partial<UserData>) => {
+    const currentData = getUserData(userId);
+    setUserDataMap((prev) => ({
       ...prev,
-      [currentUser.id]: { ...currentData, ...updates },
+      [userId]: { ...currentData, ...updates },
     }));
   };
 
-  const handleChatFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const isImage = file.type.startsWith("image/");
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setAttachedChatFile({
-        url: event.target?.result as string,
-        name: file.name,
-        type: isImage ? "image" : "file",
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleNoteFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const isImage = file.type.startsWith("image/");
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      updateCurrentPrivateData({
-        noteFileUrl: event.target?.result as string,
-        noteFileName: file.name,
-        noteFileType: isImage ? "image" : "file",
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleSendMessage = () => {
-    if (!newMessageText.trim() && !attachedChatFile) return;
+    if (!newMessageText.trim()) return;
 
     const newMsg: Message = {
       id: Date.now().toString(),
       senderId: currentUser.id,
       senderName: currentUser.name,
       text: newMessageText,
-      fileUrl: attachedChatFile?.url,
-      fileName: attachedChatFile?.name,
-      fileType: attachedChatFile?.type,
       timestamp: new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" }),
     };
 
     setChatMessages((prev) => [...prev, newMsg]);
     setNewMessageText("");
-    setAttachedChatFile(null);
   };
-
-  const handleSaveReportToHistory = () => {
-    const data = getCurrentPrivateData();
-    if (!data.currentReport.trim()) return;
-
-    const newEntry: ReportEntry = {
-      id: Date.now().toString(),
-      text: data.currentReport,
-      timestamp: new Date().toLocaleString("ar-SA"),
-    };
-
-    updateCurrentPrivateData({
-      reportHistory: [newEntry, ...data.reportHistory],
-      currentReport: "",
-    });
-  };
-
-  // ترتيب الحساب الحالي ليظهر بالأعلى دائماً
-  const sortedUsers = [currentUser, ...USERS.filter((u) => u.id !== currentUser.id)];
-  const unknownTabs = Array.from({ length: 9 }, (_, i) => `unknown_${i + 1}`);
 
   return (
-    <div dir="rtl" style={{ minHeight: "100vh", backgroundColor: "#060913", color: "#e2e8f0", fontFamily: "sans-serif", padding: "30px" }}>
-      <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
+    <div dir="rtl" className="min-h-screen bg-[#0b0f19] text-slate-100 p-6 font-sans">
+      <div className="max-w-7xl mx-auto">
         
         {/* Header */}
-        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "25px" }}>
-          <div style={{ backgroundColor: "#0c1322", padding: "12px 20px", borderRadius: "10px", border: "1px solid #1e293b", display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontWeight: "bold", color: "#f8fafc", fontSize: "16px" }}>{currentUser.name}</div>
-              <div style={{ fontSize: "12px", color: "#38bdf8" }}>{currentUser.role}</div>
+        <header className="flex justify-between items-center mb-8 p-5 bg-slate-900/80 border border-slate-800 rounded-2xl backdrop-blur-md shadow-lg">
+          <div className="flex items-center gap-3 bg-slate-950/80 px-4 py-2 rounded-xl border border-slate-800">
+            <span className="text-2xl">{currentUser.avatar}</span>
+            <div className="text-right">
+              <div className="font-bold text-slate-100">{currentUser.name}</div>
+              <div className="text-xs text-sky-400 font-medium">{currentUser.role}</div>
             </div>
           </div>
 
-          <div style={{ textAlign: "center" }}>
-            <h1 style={{ margin: 0, fontSize: "26px", fontWeight: "bold", color: "#38bdf8" }}>
+          <div className="text-center">
+            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">
               N7H Toolkit
             </h1>
-            <p style={{ margin: "4px 0 0 0", color: "#64748b", fontSize: "13px" }}>منصة الأدوات والتواصل المشتركة</p>
+            <p className="text-slate-400 text-sm mt-1">منصة الأدوات والتواصل المشتركة</p>
           </div>
         </header>
 
         {/* Layout */}
-        <div style={{ display: "flex", gap: "20px" }}>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           
-          {/* Main Workspace (اليسار) */}
-          <main style={{ flex: 1, backgroundColor: "#0c1322", padding: "20px", borderRadius: "12px", border: "1px solid #1e293b" }}>
+          {/* Main Content */}
+          <main className="md:col-span-3 bg-slate-900/60 p-6 rounded-2xl border border-slate-800 shadow-xl">
             
             {/* General Section */}
             {selectedTab === "general" && (
               <div>
-                {/* Tabs Bar */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "15px", borderBottom: "1px solid #1e293b", pb: "15px" }}>
-                  <button
-                    onClick={() => setGeneralSubTab("chat")}
-                    style={{
-                      padding: "8px 16px",
-                      borderRadius: "6px",
-                      border: "none",
-                      cursor: "pointer",
-                      backgroundColor: generalSubTab === "chat" ? "#1e293b" : "#060913",
-                      color: generalSubTab === "chat" ? "#38bdf8" : "#94a3b8",
-                      fontWeight: generalSubTab === "chat" ? "bold" : "normal"
-                    }}
-                  >
-                    💬 شات
-                  </button>
-
-                  {unknownTabs.map((tabKey, idx) => (
-                    <button
-                      key={tabKey}
-                      onClick={() => setGeneralSubTab(tabKey)}
-                      style={{
-                        padding: "8px 14px",
-                        borderRadius: "6px",
-                        border: "none",
-                        cursor: "pointer",
-                        backgroundColor: generalSubTab === tabKey ? "#1e293b" : "#060913",
-                        color: generalSubTab === tabKey ? "#38bdf8" : "#94a3b8",
-                        fontWeight: generalSubTab === tabKey ? "bold" : "normal"
-                      }}
-                    >
-                      مجهول {idx + 1}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Chat Display */}
-                {generalSubTab === "chat" && (
-                  <div>
-                    <div style={{ height: "420px", overflowY: "auto", backgroundColor: "#060913", border: "1px solid #1e293b", borderRadius: "8px", padding: "15px", marginBottom: "15px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                      {chatMessages.length === 0 ? (
-                        <div style={{ color: "#475569", textAlign: "center", marginTop: "180px" }}>لا توجد رسائل في الشات العام.</div>
-                      ) : (
-                        chatMessages.map((msg) => (
-                          <div key={msg.id} style={{ backgroundColor: "#0c1322", padding: "10px 14px", borderRadius: "6px", borderRight: "3px solid #38bdf8" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                              <span style={{ fontWeight: "bold", color: "#38bdf8", fontSize: "14px" }}>{msg.senderName}</span>
-                              <span style={{ fontSize: "11px", color: "#64748b" }}>{msg.timestamp}</span>
-                            </div>
-                            <div style={{ color: "#e2e8f0", fontSize: "14px" }}>{msg.text}</div>
-                            {msg.fileUrl && (
-                              <div style={{ marginTop: "6px" }}>
-                                {msg.fileType === "image" ? (
-                                  <img src={msg.fileUrl} alt="مرفق" style={{ maxWidth: "200px", borderRadius: "6px" }} />
-                                ) : (
-                                  <a href={msg.fileUrl} download={msg.fileName} style={{ color: "#38bdf8", fontSize: "12px" }}>📎 {msg.fileName}</a>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {/* Chat Input */}
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                      <input type="file" onChange={handleChatFileUpload} style={{ color: "#64748b", fontSize: "12px", width: "180px" }} />
-                      <input
-                        type="text"
-                        value={newMessageText}
-                        onChange={(e) => setNewMessageText(e.target.value)}
-                        placeholder="اكتب رسالتك هنا..."
-                        style={{ flex: 1, backgroundColor: "#060913", border: "1px solid #1e293b", borderRadius: "6px", padding: "10px", color: "#fff" }}
-                        onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                      />
-                      <button onClick={handleSendMessage} style={{ padding: "10px 20px", borderRadius: "6px", border: "none", backgroundColor: "#0284c7", color: "#fff", fontWeight: "bold", cursor: "pointer" }}>
-                        إرسال
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Unknown Tabs Screen */}
-                {generalSubTab !== "chat" && (
-                  <div style={{ padding: "100px 20px", textAlign: "center", backgroundColor: "#060913", borderRadius: "8px", border: "1px dashed #1e293b" }}>
-                    <h3 style={{ color: "#38bdf8", margin: "0 0 8px 0" }}>⚙️ جاري البرمجة على السكربت...</h3>
-                    <p style={{ color: "#64748b", margin: 0, fontSize: "14px" }}>هذا القسم قيد التطوير والتجهيز حالياً.</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Member Section */}
-            {selectedTab !== "general" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-                <h2 style={{ margin: 0, color: "#f8fafc", fontSize: "18px" }}>قسم العضو: {currentUser.name}</h2>
+                <h2 className="text-xl font-bold text-slate-100 border-b border-slate-800 pb-3 mb-4">عام شات</h2>
                 
-                {/* 1. Private Notes */}
-                <div style={{ backgroundColor: "#060913", padding: "15px", borderRadius: "8px", border: "1px solid #1e293b" }}>
-                  <h3 style={{ margin: "0 0 6px 0", color: "#38bdf8", fontSize: "15px" }}>📌 [الملاحظات]</h3>
-                  <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "10px" }}>خاص بك فقط، ولا يمكن لأي عضو آخر الاطلاع عليه.</p>
-                  <textarea
-                    value={getCurrentPrivateData().note}
-                    onChange={(e) => updateCurrentPrivateData({ note: e.target.value })}
-                    placeholder="اكتب ملاحظاتك الشخصية السرية هنا..."
-                    rows={3}
-                    style={{ width: "100%", backgroundColor: "#0c1322", border: "1px solid #1e293b", borderRadius: "6px", padding: "10px", color: "#fff", marginBottom: "10px" }}
-                  />
-                  <div>
-                    <label style={{ fontSize: "12px", color: "#64748b", display: "block", marginBottom: "5px" }}>إرفاق صورة أو ملف مع الملاحظة:</label>
-                    <input type="file" onChange={handleNoteFileUpload} style={{ color: "#64748b", fontSize: "12px" }} />
-                    {getCurrentPrivateData().noteFileUrl && (
-                      <div style={{ marginTop: "10px" }}>
-                        {getCurrentPrivateData().noteFileType === "image" ? (
-                          <img src={getCurrentPrivateData().noteFileUrl} alt="ملاحظة مصورة" style={{ maxWidth: "200px", borderRadius: "6px" }} />
-                        ) : (
-                          <a href={getCurrentPrivateData().noteFileUrl} download={getCurrentPrivateData().noteFileName} style={{ color: "#38bdf8" }}>📎 {getCurrentPrivateData().noteFileName}</a>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 2. Current Report */}
-                <div style={{ backgroundColor: "#060913", padding: "15px", borderRadius: "8px", border: "1px solid #1e293b" }}>
-                  <h3 style={{ margin: "0 0 10px 0", color: "#f8fafc", fontSize: "15px" }}>كتابة تقرير</h3>
-                  <textarea
-                    value={getCurrentPrivateData().currentReport}
-                    onChange={(e) => updateCurrentPrivateData({ currentReport: e.target.value })}
-                    placeholder="اكتب تفاصيل التقرير..."
-                    rows={3}
-                    style={{ width: "100%", backgroundColor: "#0c1322", border: "1px solid #1e293b", borderRadius: "6px", padding: "10px", color: "#fff", marginBottom: "10px" }}
-                  />
-                  <button onClick={handleSaveReportToHistory} style={{ padding: "8px 16px", borderRadius: "6px", border: "none", backgroundColor: "#10b981", color: "#fff", fontWeight: "bold", cursor: "pointer" }}>
-                    حفظ التقرير في الأرشيف
-                  </button>
-                </div>
-
-                {/* 3. Reports History */}
-                <div style={{ backgroundColor: "#060913", padding: "15px", borderRadius: "8px", border: "1px solid #1e293b" }}>
-                  <h3 style={{ margin: "0 0 10px 0", color: "#f8fafc", fontSize: "15px" }}>سجل التقارير والأرشيف</h3>
-                  {getCurrentPrivateData().reportHistory.length === 0 ? (
-                    <p style={{ color: "#64748b", margin: 0, fontSize: "13px" }}>لا يوجد أرشيف تقارير سابقة.</p>
+                <div className="h-[420px] overflow-y-auto bg-slate-950/80 border border-slate-800 rounded-xl p-4 mb-4 space-y-3">
+                  {chatMessages.length === 0 ? (
+                    <div className="text-slate-500 text-center mt-40">لا توجد رسائل في الشات العام حالياً.</div>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      {getCurrentPrivateData().reportHistory.map((entry) => (
-                        <div key={entry.id} style={{ backgroundColor: "#0c1322", padding: "10px", borderRadius: "6px", borderRight: "3px solid #10b981" }}>
-                          <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "4px" }}>تاريخ ووقت الحفظ: {entry.timestamp}</div>
-                          <div style={{ color: "#e2e8f0", fontSize: "13px" }}>{entry.text}</div>
+                    chatMessages.map((msg) => (
+                      <div key={msg.id} className="bg-slate-900 border-r-4 border-sky-500 p-3 rounded-lg">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-bold text-sky-400 text-sm">{msg.senderName}</span>
+                          <span className="text-[10px] text-slate-500">{msg.timestamp}</span>
                         </div>
-                      ))}
-                    </div>
+                        <div className="text-slate-200 text-sm">{msg.text}</div>
+                      </div>
+                    ))
                   )}
                 </div>
 
+                <div className="flex gap-2 items-center bg-slate-950 p-2 rounded-xl border border-slate-800">
+                  <input
+                    type="text"
+                    value={newMessageText}
+                    onChange={(e) => setNewMessageText(e.target.value)}
+                    placeholder="اكتب رسالتك..."
+                    className="flex-1 bg-transparent border-0 text-slate-100 placeholder-slate-500 focus:outline-none text-sm px-3"
+                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                  />
+                  <button onClick={handleSendMessage} className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-5 py-2 rounded-lg text-sm transition-all">
+                    إرسال
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* User Section */}
+            {selectedTab !== "general" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold text-slate-100 border-b border-slate-800 pb-3">قسم العضو: {USERS.find(u => u.id === selectedTab)?.name}</h2>
+                
+                <div className="bg-slate-950/60 p-4 rounded-xl border border-sky-500/30">
+                  <h3 className="text-md font-bold text-sky-400 mb-1">📌 [مهم]</h3>
+                  <textarea
+                    value={getUserData(selectedTab).note}
+                    onChange={(e) => updateUserData(selectedTab, { note: e.target.value })}
+                    placeholder="اكتب الملاحظات الملاحظات الهامة هنا..."
+                    rows={4}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+
+                <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                  <h3 className="text-md font-bold text-slate-200 mb-3">كتابة تقرير</h3>
+                  <textarea
+                    value={getUserData(selectedTab).report}
+                    onChange={(e) => updateUserData(selectedTab, { report: e.target.value })}
+                    placeholder="اكتب تفاصيل التقرير..."
+                    rows={4}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500"
+                  />
+                </div>
               </div>
             )}
 
           </main>
 
-          {/* Sidebar (اليمين) */}
-          <aside style={{ width: "260px", backgroundColor: "#0c1322", padding: "15px", borderRadius: "12px", border: "1px solid #1e293b", height: "fit-content" }}>
-            <h3 style={{ margin: "0 0 12px 0", fontSize: "13px", color: "#64748b" }}>الأقسام والأعضاء</h3>
+          {/* Sidebar */}
+          <aside className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 h-fit">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">الأقسام والأعضاء</h3>
             
             <button
               onClick={() => setSelectedTab("general")}
-              style={{
-                width: "100%",
-                padding: "10px",
-                borderRadius: "8px",
-                marginBottom: "20px",
-                border: "none",
-                fontWeight: "bold",
-                cursor: "pointer",
-                textAlign: "center",
-                backgroundColor: selectedTab === "general" ? "#0284c7" : "#060913",
-                color: "#fff",
-              }}
+              className={`w-full p-3 rounded-xl mb-6 font-bold flex items-center justify-between transition-all ${
+                selectedTab === "general" ? "bg-sky-600 text-white shadow-lg shadow-sky-600/30" : "bg-slate-950 text-slate-300 hover:bg-slate-800"
+              }`}
             >
-              عام
+              <span>🌐 عام شات</span>
             </button>
 
-            <h4 style={{ fontSize: "12px", color: "#64748b", marginBottom: "10px" }}>الأعضاء (حسابك بالأعلى):</h4>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              {sortedUsers.map((user) => {
-                const isSelected = currentUser.id === user.id && selectedTab === user.id;
+            <h4 className="text-xs text-slate-500 mb-3 font-semibold">اختر الحساب:</h4>
+            <div className="space-y-2">
+              {USERS.map((user) => {
+                const isCurrent = currentUser.id === user.id;
+                const isSelected = selectedTab === user.id;
                 return (
                   <button
                     key={user.id}
@@ -394,24 +214,13 @@ export default function N7HToolkit() {
                       handleSelectUser(user);
                       setSelectedTab(user.id);
                     }}
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
-                      border: "1px solid",
-                      borderColor: currentUser.id === user.id ? "#38bdf8" : "#1e293b",
-                      backgroundColor: isSelected ? "#1e293b" : "#060913",
-                      color: "#e2e8f0",
-                      cursor: "pointer",
-                      textAlign: "right",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center"
-                    }}
+                    className={`w-full p-3 rounded-xl border flex justify-between items-center transition-all ${
+                      isCurrent ? "border-sky-500/50 bg-sky-950/20" : "border-slate-800 bg-slate-950/40"
+                    } ${isSelected ? "bg-slate-800 border-sky-400" : "hover:bg-slate-800/60"}`}
                   >
-                    <span>{user.name}</span>
-                    {currentUser.id === user.id && (
-                      <span style={{ fontSize: "10px", backgroundColor: "#0284c7", padding: "2px 6px", borderRadius: "4px" }}>
+                    <span className="font-medium text-slate-200">{user.avatar} {user.name}</span>
+                    {isCurrent && (
+                      <span className="text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-full font-semibold">
                         حسابك
                       </span>
                     )}
