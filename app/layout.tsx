@@ -1,240 +1,330 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import {
-  Users, UserCheck, Shield, FileText, CheckCircle,
-  RotateCcw, Save, MessageSquare, AlertCircle, LogOut, Send, Key, User, Lock
-} from 'lucide-react';
+import React, { useState, useEffect } from "react";
 
-// قائمة الحسابات المتاحة وكلمات المرور المحدثة
-const INITIAL_USERS = [
-  { id: 'n7h', name: 'N7H', pass: 'N7H5002', isAdmin: true, enabled: true },
-  { id: 'azzam', name: 'عزام', pass: 'AZM18', enabled: true },
-  { id: 'rakan', name: 'راكان', pass: 'RKN20', enabled: true },
-  { id: 'farraj', name: 'فراج', pass: 'FRG66', enabled: true },
-  { id: 'mohammed', name: 'محمد', pass: 'M7D9', enabled: true },
-  { id: 'raad', name: 'رعد', pass: 'R3D33', enabled: true },
-];
+interface UserAccount {
+  id: string;
+  name: string;
+  pass: string;
+}
+
+interface ReportItem {
+  id: string;
+  number: number;
+  timestamp: string;
+}
+
+interface NoteItem {
+  id: string;
+  text: string;
+  fileUrl?: string;
+  fileName?: string;
+  timestamp: string;
+}
 
 interface ChatMessage {
   id: string;
-  senderName: string;
   senderId: string;
+  senderName: string;
+  senderJob?: string;
   text: string;
-  time: string;
+  fileUrl?: string;
+  fileName?: string;
+  timestamp: string;
 }
 
-export default function N7HToolkit() {
-  // حالة تسجيل الدخول
-  const [loggedInUser, setLoggedInUser] = useState<any | null>(null);
-  const [loginUsername, setLoginUsername] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
+const ACCOUNTS: UserAccount[] = [
+  { id: "n7h", name: "N7H", pass: "N7HLL" },
+  { id: "azzam", name: "عزام", pass: "AZM18" },
+  { id: "rakan", name: "راكان", pass: "RKN20" },
+  { id: "farraj", name: "فراج", pass: "FRG66" },
+  { id: "mohammed", name: "محمد", pass: "M7D9" },
+  { id: "raad", name: "رعد", pass: "R3D33" },
+];
 
-  // إدارة قائمة المستخدمين والحالة
-  const [users, setUsers] = useState(INITIAL_USERS);
-  const [activeTab, setActiveTab] = useState('public');
+const JOBS = [
+  "الهلال الاحمر",
+  "الامن العام",
+  "الرقابة و التفتيش",
+  "حرس الحدود",
+  "كراج الميكانيك",
+  "الامن الدبلوماسي",
+];
 
-  // بيانات "تقاريري" و "مهم"
-  const [reportsData, setReportsData] = useState<{ [key: string]: string }>({});
-  const [importantData, setImportantData] = useState<{ [key: string]: string }>({});
+export default function N7HPortal() {
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [selectedJob, setSelectedJob] = useState<string>("");
+  const [showJobMenu, setShowJobMenu] = useState<boolean>(false);
 
-  // الشات العام
+  const [loginAccountId, setLoginAccountId] = useState<string>("n7h");
+  const [loginPass, setLoginPass] = useState<string>("");
+  const [loginError, setLoginError] = useState<string>("");
+
+  const [activeTab, setActiveTab] = useState<string>("general");
+
+  const [reportsMap, setReportsMap] = useState<Record<string, ReportItem[]>>({});
+  const [notesMap, setNotesMap] = useState<Record<string, NoteItem[]>>({});
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
 
-  // المدخلات الحالية
-  const [inputReportNum, setInputReportNum] = useState('');
-  const [inputImportant, setInputImportant] = useState('');
+  const [inputReportNum, setInputReportNum] = useState<string>("");
+  const [reportError, setReportError] = useState<string>("");
+  const [noteText, setNoteText] = useState<string>("");
+  const [noteFile, setNoteFile] = useState<File | null>(null);
 
-  // تحميل واسترجاع البيانات المحفوظة
+  const [chatText, setChatText] = useState<string>("");
+  const [chatFile, setChatFile] = useState<File | null>(null);
+
   useEffect(() => {
-    const savedUser = localStorage.getItem('n7h_auth_user');
-    const savedReports = localStorage.getItem('n7h_reports');
-    const savedImportant = localStorage.getItem('n7h_important');
-    const savedChat = localStorage.getItem('n7h_chat_messages');
-    const savedUsersConfig = localStorage.getItem('n7h_users_config');
+    const savedUser = localStorage.getItem("n7h_user");
+    if (savedUser) try { setCurrentUser(JSON.parse(savedUser)); } catch (e) {}
 
-    if (savedUser) setLoggedInUser(JSON.parse(savedUser));
-    if (savedReports) setReportsData(JSON.parse(savedReports));
-    if (savedImportant) setImportantData(JSON.parse(savedImportant));
-    if (savedUsersConfig) setUsers(JSON.parse(savedUsersConfig));
-    if (savedChat) {
-      setChatMessages(JSON.parse(savedChat));
-    } else {
-      setChatMessages([
-        { id: '1', senderName: 'N7H', senderId: 'n7h', text: 'مرحباً بالجميع في الشات العام!', time: '12:00 م' }
-      ]);
-    }
+    const savedJob = localStorage.getItem("n7h_job");
+    if (savedJob) setSelectedJob(savedJob);
+
+    const savedReports = localStorage.getItem("n7h_reports_data");
+    if (savedReports) try { setReportsMap(JSON.parse(savedReports)); } catch (e) {}
+
+    const savedNotes = localStorage.getItem("n7h_notes_data");
+    if (savedNotes) try { setNotesMap(JSON.parse(savedNotes)); } catch (e) {}
+
+    const savedChat = localStorage.getItem("n7h_chat_data");
+    if (savedChat) try { setChatMessages(JSON.parse(savedChat)); } catch (e) {}
   }, []);
 
-  // تحديث القيم عند التبديل بين الحسابات والأقسام
   useEffect(() => {
-    const currentViewId = activeTab === 'public' ? (loggedInUser?.id || '') : activeTab;
-    setInputReportNum(reportsData[currentViewId] || '');
-    setInputImportant(importantData[currentViewId] || '');
-  }, [activeTab, reportsData, importantData, loggedInUser]);
+    localStorage.setItem("n7h_reports_data", JSON.stringify(reportsMap));
+  }, [reportsMap]);
 
-  // تسجيل الدخول
+  useEffect(() => {
+    localStorage.setItem("n7h_notes_data", JSON.stringify(notesMap));
+  }, [notesMap]);
+
+  useEffect(() => {
+    localStorage.setItem("n7h_chat_data", JSON.stringify(chatMessages));
+  }, [chatMessages]);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError('');
-
-    const found = users.find(
-      (u) => u.name.trim().toLowerCase() === loginUsername.trim().toLowerCase() && u.pass === loginPassword
-    );
-
-    if (!found) {
-      setLoginError('اسم المستخدم أو كلمة المرور غير صحيحة');
-      return;
+    const account = ACCOUNTS.find((a) => a.id === loginAccountId);
+    if (account && account.pass === loginPass) {
+      setCurrentUser(account);
+      localStorage.setItem("n7h_user", JSON.stringify(account));
+      setLoginPass("");
+      setLoginError("");
+    } else {
+      setLoginError("كلمة المرور غير صحيحة!");
     }
-
-    if (!found.enabled) {
-      setLoginError('هذا الحساب معطل حالياً من قبل المسؤول');
-      return;
-    }
-
-    setLoggedInUser(found);
-    localStorage.setItem('n7h_auth_user', JSON.stringify(found));
-    setActiveTab('public');
   };
 
-  // تسجيل الخروج
   const handleLogout = () => {
-    setLoggedInUser(null);
-    localStorage.removeItem('n7h_auth_user');
+    setCurrentUser(null);
+    setSelectedJob("");
+    localStorage.removeItem("n7h_user");
+    localStorage.removeItem("n7h_job");
   };
 
-  // التحقق هل المستخدم الحالي يملك صلاحية التعديل على القسم المفتوح
-  const canEditCurrentView = () => {
-    if (!loggedInUser) return false;
-    if (loggedInUser.isAdmin) return true; // N7H يمكنه التعديل على الجميع
-    return activeTab === loggedInUser.id; // صاحب الحساب يملك التعديل
+  const handleSelectJob = (job: string) => {
+    setSelectedJob(job);
+    localStorage.setItem("n7h_job", job);
+    setShowJobMenu(false);
   };
 
-  // حفظ التقرير
-  const handleSaveReport = () => {
-    if (!canEditCurrentView()) {
-      alert('عذراً، لا يمكنك تعديل تقارير هذا الشخص!');
+  const handleAddReport = () => {
+    if (!currentUser) return;
+    const num = parseInt(inputReportNum, 10);
+    if (isNaN(num) || num < 0 || num > 100) {
+      setReportError("يرجى كتابة رقم من 0 إلى 100");
       return;
     }
-    const targetId = activeTab === 'public' ? loggedInUser.id : activeTab;
-    const num = parseInt(inputReportNum);
-    if (isNaN(num) || num < 1 || num > 100) {
-      alert('رجاءً أدخل رقماً صحيحاً بين 1 و 100');
-      return;
-    }
-    const updated = { ...reportsData, [targetId]: num.toString() };
-    setReportsData(updated);
-    localStorage.setItem('n7h_reports', JSON.stringify(updated));
-  };
+    setReportError("");
 
-  // إعادة تعيين التقرير
-  const handleResetReport = () => {
-    if (!canEditCurrentView()) {
-      alert('عذراً، لا يمكنك تعديل تقارير هذا الشخص!');
-      return;
-    }
-    const targetId = activeTab === 'public' ? loggedInUser.id : activeTab;
-    const updated = { ...reportsData, [targetId]: '' };
-    setReportsData(updated);
-    setInputReportNum('');
-    localStorage.setItem('n7h_reports', JSON.stringify(updated));
-  };
-
-  // حفظ قسم "مهم"
-  const handleSaveImportant = () => {
-    if (!canEditCurrentView()) {
-      alert('عذراً، لا يمكنك تعديل ملاحظات هذا الشخص!');
-      return;
-    }
-    const targetId = activeTab === 'public' ? loggedInUser.id : activeTab;
-    const updated = { ...importantData, [targetId]: inputImportant };
-    setImportantData(updated);
-    localStorage.setItem('n7h_important', JSON.stringify(updated));
-  };
-
-  // إرسال رسالة في الشات العام
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !loggedInUser) return;
-
-    const msg: ChatMessage = {
+    const newReport: ReportItem = {
       id: Date.now().toString(),
-      senderName: loggedInUser.name,
-      senderId: loggedInUser.id,
-      text: newMessage.trim(),
-      time: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
+      number: num,
+      timestamp: new Date().toLocaleString("ar-SA", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
 
-    const updatedChat = [...chatMessages, msg];
-    setChatMessages(updatedChat);
-    setNewMessage('');
-    localStorage.setItem('n7h_chat_messages', JSON.stringify(updatedChat));
+    const userReports = reportsMap[currentUser.id] || [];
+    setReportsMap({
+      ...reportsMap,
+      [currentUser.id]: [newReport, ...userReports],
+    });
+    setInputReportNum("");
   };
 
-  // تفعيل/تعطيل حساب مستخدم (خاص بـ N7H)
-  const toggleUserAccess = (userId: string) => {
-    const updated = users.map((u) => (u.id === userId ? { ...u, enabled: !u.enabled } : u));
-    setUsers(updated);
-    localStorage.setItem('n7h_users_config', JSON.stringify(updated));
+  const handleAddNote = () => {
+    if (!currentUser || (!noteText.trim() && !noteFile)) return;
+
+    let fileUrl: string | undefined;
+    let fileName: string | undefined;
+
+    if (noteFile) {
+      fileUrl = URL.createObjectURL(noteFile);
+      fileName = noteFile.name;
+    }
+
+    const newNote: NoteItem = {
+      id: Date.now().toString(),
+      text: noteText,
+      fileUrl,
+      fileName,
+      timestamp: new Date().toLocaleString("ar-SA", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+
+    const userNotes = notesMap[currentUser.id] || [];
+    setNotesMap({
+      ...notesMap,
+      [currentUser.id]: [newNote, ...userNotes],
+    });
+    setNoteText("");
+    setNoteFile(null);
   };
 
-  // ----------------------------------------------------
-  // شاشة تسجيل الدخول للزوار
-  // ----------------------------------------------------
-  if (!loggedInUser) {
+  const handleSendMessage = () => {
+    if (!currentUser || (!chatText.trim() && !chatFile)) return;
+
+    let fileUrl: string | undefined;
+    let fileName: string | undefined;
+
+    if (chatFile) {
+      fileUrl = URL.createObjectURL(chatFile);
+      fileName = chatFile.name;
+    }
+
+    const newMsg: ChatMessage = {
+      id: Date.now().toString(),
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      senderJob: selectedJob || undefined,
+      text: chatText,
+      fileUrl,
+      fileName,
+      timestamp: new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    setChatMessages((prev) => [...prev, newMsg]);
+    setChatText("");
+    setChatFile(null);
+  };
+
+  const shareReportToChat = (num: number) => {
+    if (!currentUser) return;
+
+    const newMsg: ChatMessage = {
+      id: Date.now().toString(),
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      senderJob: selectedJob || undefined,
+      text: `📢 تم مشاركة تقرير رقم [ ${num} ]`,
+      timestamp: new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    setChatMessages((prev) => [...prev, newMsg]);
+    setActiveTab("general");
+  };
+
+  if (!currentUser) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#070b14] text-slate-200 font-sans p-4" dir="rtl">
-        <div className="w-full max-w-md bg-[#0a101f] border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-6">
-          <div className="text-center space-y-2">
-            <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center font-black text-3xl text-white mx-auto shadow-xl shadow-blue-600/30">
-              N7H
-            </div>
-            <h1 className="text-xl font-bold text-white pt-2">تسجيل الدخول إلى N7H Toolkit</h1>
-            <p className="text-xs text-slate-400">أدخل اسم الحساب وكلمة المرور للوصول</p>
+      <div dir="rtl" style={{
+        minHeight: "100vh",
+        backgroundColor: "#080c14",
+        color: "#f1f5f9",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+      }}>
+        <div style={{
+          width: "100%",
+          maxWidth: "400px",
+          backgroundColor: "#0f172a",
+          border: "1px solid #1e293b",
+          borderRadius: "16px",
+          padding: "32px",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)"
+        }}>
+          <div style={{ textAlign: "center", marginBottom: "28px" }}>
+            <h1 style={{
+              fontSize: "24px",
+              fontWeight: "900",
+              color: "#38bdf8",
+              margin: "0 0 6px 0"
+            }}>N7H PORTAL</h1>
+            <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>منظومة إدارة التقارير والملاحظات</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
             <div>
-              <label className="text-xs text-slate-300 font-medium block mb-1.5">اسم المستخدم (الاسم):</label>
-              <div className="relative">
-                <User size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="text"
-                  required
-                  placeholder="مثال: N7H، عزام، راكان..."
-                  value={loginUsername}
-                  onChange={(e) => setLoginUsername(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pr-11 pl-4 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-                />
-              </div>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#94a3b8", marginBottom: "8px" }}>اختر الحساب:</label>
+              <select
+                value={loginAccountId}
+                onChange={(e) => setLoginAccountId(e.target.value)}
+                style={{
+                  width: "100%",
+                  backgroundColor: "#080c14",
+                  border: "1px solid #334155",
+                  borderRadius: "10px",
+                  padding: "12px",
+                  color: "#fff",
+                  fontSize: "14px",
+                  outline: "none"
+                }}
+              >
+                {ACCOUNTS.map((acc) => (
+                  <option key={acc.id} value={acc.id}>{acc.name}</option>
+                ))}
+              </select>
             </div>
 
             <div>
-              <label className="text-xs text-slate-300 font-medium block mb-1.5">كلمة المرور:</label>
-              <div className="relative">
-                <Key size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pr-11 pl-4 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-                />
-              </div>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#94a3b8", marginBottom: "8px" }}>كلمة المرور:</label>
+              <input
+                type="password"
+                value={loginPass}
+                onChange={(e) => setLoginPass(e.target.value)}
+                placeholder="أدخل كلمة المرور..."
+                style={{
+                  width: "100%",
+                  backgroundColor: "#080c14",
+                  border: "1px solid #334155",
+                  borderRadius: "10px",
+                  padding: "12px",
+                  color: "#fff",
+                  fontSize: "14px",
+                  outline: "none",
+                  boxSizing: "border-box"
+                }}
+              />
             </div>
 
-            {loginError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400 text-center">
-                {loginError}
-              </div>
-            )}
+            {loginError && <p style={{ color: "#ef4444", fontSize: "12px", margin: 0, textAlign: "center" }}>{loginError}</p>}
 
             <button
               type="submit"
-              className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/30 transition-all"
+              style={{
+                width: "100%",
+                backgroundColor: "#0284c7",
+                color: "#fff",
+                fontWeight: "bold",
+                padding: "12px",
+                borderRadius: "10px",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "14px",
+                marginTop: "10px"
+              }}
             >
               تسجيل الدخول
             </button>
@@ -244,309 +334,570 @@ export default function N7HToolkit() {
     );
   }
 
-  // ----------------------------------------------------
-  // الواجهة الرئيسية بعد تسجيل الدخول
-  // ----------------------------------------------------
-  const currentViewId = activeTab === 'public' ? loggedInUser.id : activeTab;
-  const currentViewObj = users.find((u) => u.id === currentViewId);
-  const isEditable = canEditCurrentView();
+  const activeAccountReports = reportsMap[activeTab] || [];
+  const activeAccountNotes = notesMap[activeTab] || [];
+  const latestReport = activeAccountReports[0];
 
   return (
-    <div className="flex h-screen bg-[#070b14] text-slate-200 font-sans overflow-hidden" dir="rtl">
-      
-      {/* Sidebar القائمة الجانبية (الأدوات والأسماء ظاهرة للجميع) */}
-      <aside className="w-64 bg-[#0a101f] border-l border-slate-800/60 flex flex-col justify-between p-4 flex-shrink-0">
-        <div className="space-y-6">
-          {/* Logo */}
-          <div className="flex items-center gap-3 px-2 py-1">
-            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-500/30">
-              N7H
-            </div>
-            <div>
-              <h1 className="font-bold text-lg leading-none tracking-wide text-white">N7H</h1>
-              <span className="text-[10px] text-blue-400 font-medium tracking-widest">الملاحظات والشات</span>
-            </div>
-          </div>
+    <div dir="rtl" style={{
+      minHeight: "100vh",
+      backgroundColor: "#080c14",
+      color: "#f1f5f9",
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      display: "flex",
+      flexDirection: "column"
+    }}>
+      {/* Header */}
+      <header style={{
+        height: "65px",
+        backgroundColor: "#0f172a",
+        borderBottom: "1px solid #1e293b",
+        padding: "0 24px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        position: "sticky",
+        top: 0,
+        zIndex: 100
+      }}>
+        <div style={{ display: "flex", itemsCenter: "center", gap: "12px" }}>
+          <div style={{
+            width: "36px",
+            height: "36px",
+            backgroundColor: "#0284c7",
+            borderRadius: "8px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: "900",
+            color: "#fff"
+          }}>N</div>
+          <span style={{ fontSize: "18px", fontWeight: "800", color: "#38bdf8", letterSpacing: "1px" }}>N7H PORTAL</span>
+        </div>
 
-          {/* قائمة الأسماء الشاملة المتاحة للجميع */}
-          <nav className="space-y-1.5">
-            <span className="text-[11px] font-bold text-slate-500 px-3 uppercase tracking-wider block mb-2">الأقسام والأسماء</span>
-            
-            {/* الشات العام */}
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ position: "relative" }}>
             <button
-              onClick={() => setActiveTab('public')}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                activeTab === 'public'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
-              }`}
+              onClick={() => setShowJobMenu(!showJobMenu)}
+              style={{
+                backgroundColor: "rgba(2, 132, 199, 0.15)",
+                border: "1px solid #0284c7",
+                color: "#38bdf8",
+                padding: "8px 16px",
+                borderRadius: "10px",
+                fontSize: "13px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px"
+              }}
             >
-              <Users size={18} className={activeTab === 'public' ? 'text-white' : 'text-emerald-400'} />
-              <span>عام (الشات)</span>
+              <span>💼 {selectedJob ? selectedJob : "اختر الوظيفه"}</span>
+              <span style={{ fontSize: "10px" }}>▼</span>
             </button>
 
-            {/* عرض كل الأسماء للجميع */}
-            {users.map((item) => {
-              const isActive = activeTab === item.id;
-              const isSelf = item.id === loggedInUser.id;
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                      : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <UserCheck size={18} className={isActive ? 'text-white' : 'text-blue-400'} />
-                    <span>{item.name} {isSelf && '(أنت)'}</span>
+            {showJobMenu && (
+              <div style={{
+                position: "absolute",
+                top: "45px",
+                right: 0,
+                width: "180px",
+                backgroundColor: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: "12px",
+                boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                padding: "6px",
+                zIndex: 200
+              }}>
+                {JOBS.map((job) => (
+                  <div
+                    key={job}
+                    onClick={() => handleSelectJob(job)}
+                    style={{
+                      padding: "10px 12px",
+                      fontSize: "12px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      backgroundColor: selectedJob === job ? "#0284c7" : "transparent",
+                      color: selectedJob === job ? "#fff" : "#cbd5e1",
+                      fontWeight: selectedJob === job ? "bold" : "normal",
+                      marginBottom: "2px"
+                    }}
+                  >
+                    {job}
                   </div>
-                  {!item.enabled && <span className="text-[10px] text-red-400 bg-red-950/80 px-1.5 py-0.5 rounded">معطل</span>}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* تسجيل الخروج */}
-        <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-400">الحساب الحالي:</span>
-            <span className="font-bold text-blue-400">{loggedInUser.name}</span>
+                ))}
+              </div>
+            )}
           </div>
+
+          <div style={{
+            backgroundColor: "#1e293b",
+            padding: "6px 14px",
+            borderRadius: "10px",
+            fontSize: "12px",
+            fontWeight: "bold",
+            color: "#e2e8f0"
+          }}>
+            {currentUser.name}
+          </div>
+
           <button
             onClick={handleLogout}
-            className="w-full py-2 bg-slate-800 hover:bg-red-600/20 text-slate-300 hover:text-red-400 border border-slate-700/60 hover:border-red-500/40 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all"
+            style={{
+              backgroundColor: "rgba(239, 68, 68, 0.15)",
+              border: "1px solid rgba(239, 68, 68, 0.4)",
+              color: "#f87171",
+              padding: "6px 14px",
+              borderRadius: "10px",
+              fontSize: "12px",
+              cursor: "pointer",
+              fontWeight: "bold"
+            }}
           >
-            <LogOut size={14} /> تسجيل الخروج
+            خروج
           </button>
         </div>
-      </aside>
+      </header>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-y-auto">
-        {/* Header */}
-        <header className="h-16 border-b border-slate-800/60 px-6 flex items-center justify-between bg-[#070b14]/80 backdrop-blur sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span>عرض قسم:</span>
-              <span className="text-blue-400">{activeTab === 'public' ? 'الشات العام' : currentViewObj?.name}</span>
-            </h2>
+      {/* Main Container */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {/* Sidebar */}
+        <aside style={{
+          width: "240px",
+          backgroundColor: "#0f172a",
+          borderLeft: "1px solid #1e293b",
+          padding: "20px 12px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px"
+        }}>
+          <div style={{ fontSize: "11px", fontWeight: "bold", color: "#64748b", padding: "0 10px", marginBottom: "4px" }}>
+            الأقسام الرئيسية
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl">
-              <Shield size={16} className="text-blue-400" />
-              <span className="text-xs text-slate-300">
-                الرتبة: {loggedInUser.isAdmin ? 'مدير النظام (N7H)' : 'عضو'}
-              </span>
-            </div>
+          <button
+            onClick={() => setActiveTab("general")}
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: "10px",
+              fontSize: "13px",
+              fontWeight: "bold",
+              textAlign: "right",
+              border: "none",
+              cursor: "pointer",
+              backgroundColor: activeTab === "general" ? "#0284c7" : "transparent",
+              color: activeTab === "general" ? "#fff" : "#94a3b8"
+            }}
+          >
+            💬 شات
+          </button>
+
+          <div style={{ fontSize: "11px", fontWeight: "bold", color: "#64748b", padding: "0 10px", marginTop: "16px", marginBottom: "4px" }}>
+            قائمة الأعضاء
           </div>
-        </header>
 
-        {/* Dynamic Body */}
-        <div className="p-6 flex gap-6">
-          <div className="flex-1 space-y-6">
+          {ACCOUNTS.map((acc) => {
+            const isActive = activeTab === acc.id;
+            return (
+              <button
+                key={acc.id}
+                onClick={() => setActiveTab(acc.id)}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  borderRadius: "10px",
+                  fontSize: "13px",
+                  fontWeight: "bold",
+                  textAlign: "right",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  backgroundColor: isActive ? "#0284c7" : "transparent",
+                  color: isActive ? "#fff" : "#94a3b8"
+                }}
+              >
+                <span>{acc.name}</span>
+                {currentUser.id === acc.id && (
+                  <span style={{
+                    fontSize: "10px",
+                    backgroundColor: "rgba(255,255,255,0.2)",
+                    padding: "2px 6px",
+                    borderRadius: "4px"
+                  }}>حسابك</span>
+                )}
+              </button>
+            );
+          })}
+        </aside>
 
-            {/* 1. قسم الشات العام */}
-            {activeTab === 'public' && (
-              <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4 flex flex-col h-[75vh]">
-                <div className="flex items-center gap-3 border-b border-slate-800 pb-3 flex-shrink-0">
-                  <MessageSquare className="text-emerald-400" size={26} />
-                  <div>
-                    <h3 className="text-base font-bold text-white">الشات العام المشترك</h3>
-                    <p className="text-xs text-slate-400">تواصل مباشر باسمك مع جميع الأعضاء.</p>
-                  </div>
+        {/* Content Area */}
+        <main style={{ flex: 1, padding: "28px", overflowY: "auto" }}>
+          {activeTab === "general" && (
+            <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+              <div style={{
+                backgroundColor: "#0f172a",
+                border: "1px solid #1e293b",
+                borderRadius: "16px",
+                padding: "20px",
+                display: "flex",
+                flexDirection: "column",
+                height: "600px"
+              }}>
+                <div style={{
+                  borderBottom: "1px solid #1e293b",
+                  paddingBottom: "12px",
+                  marginBottom: "16px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center"
+                }}>
+                  <h2 style={{ fontSize: "16px", fontWeight: "bold", margin: 0 }}>💬 الشات العام</h2>
+                  {selectedJob && <span style={{ fontSize: "12px", color: "#38bdf8" }}>الوظيفة الحالية: {selectedJob}</span>}
                 </div>
 
-                {/* صندوق الرسائل */}
-                <div className="flex-1 overflow-y-auto space-y-3 p-2 border border-slate-800/60 rounded-xl bg-slate-950/60">
+                <div style={{
+                  flex: 1,
+                  overflowY: "auto",
+                  padding: "12px",
+                  backgroundColor: "#080c14",
+                  borderRadius: "12px",
+                  border: "1px solid #1e293b",
+                  marginBottom: "16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px"
+                }}>
                   {chatMessages.length === 0 ? (
-                    <p className="text-center text-xs text-slate-600 py-10">لا توجد رسائل حالياً.</p>
+                    <div style={{ textAlign: "center", color: "#64748b", fontSize: "13px", marginTop: "auto", marginBottom: "auto" }}>
+                      لا توجد رسائل في الشات العام.
+                    </div>
                   ) : (
                     chatMessages.map((msg) => (
                       <div
                         key={msg.id}
-                        className={`p-3 rounded-xl max-w-lg ${
-                          msg.senderId === loggedInUser.id
-                            ? 'bg-blue-600/20 border border-blue-500/30 mr-auto'
-                            : 'bg-slate-800/60 border border-slate-700/50 ml-auto'
-                        }`}
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: "12px",
+                          maxWidth: "75%",
+                          alignSelf: msg.senderId === currentUser.id ? "flex-start" : "flex-end",
+                          backgroundColor: msg.senderId === currentUser.id ? "#0369a1" : "#1e293b",
+                          color: "#fff"
+                        }}
                       >
-                        <div className="flex items-center justify-between gap-4 mb-1">
-                          <span className="font-bold text-xs text-blue-400">{msg.senderName}</span>
-                          <span className="text-[10px] text-slate-500">{msg.time}</span>
+                        <div style={{ display: "flex", justifyBetween: "space-between", gap: "12px", marginBottom: "4px" }}>
+                          <span style={{ fontSize: "12px", fontWeight: "bold", color: "#7dd3fc" }}>
+                            {msg.senderName} {msg.senderJob && `[${msg.senderJob}]`}
+                          </span>
+                          <span style={{ fontSize: "10px", color: "#94a3b8" }}>{msg.timestamp}</span>
                         </div>
-                        <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                        {msg.text && <p style={{ fontSize: "13px", margin: 0, whiteSpace: "pre-wrap", lineHeight: "1.4" }}>{msg.text}</p>}
+
+                        {msg.fileUrl && (
+                          <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                            {msg.fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                              <img src={msg.fileUrl} alt="uploaded" style={{ maxHeight: "180px", borderRadius: "8px" }} />
+                            ) : (
+                              <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#38bdf8", fontSize: "12px" }}>
+                                📎 {msg.fileName || "ملف مرفق"}
+                              </a>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))
                   )}
                 </div>
 
-                {/* مدخل الإرسال */}
-                <form onSubmit={handleSendMessage} className="flex gap-2 flex-shrink-0">
+                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  <label style={{
+                    backgroundColor: "#1e293b",
+                    color: "#cbd5e1",
+                    padding: "10px 14px",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    fontSize: "13px"
+                  }}>
+                    📎
+                    <input
+                      type="file"
+                      style={{ display: "none" }}
+                      onChange={(e) => e.target.files && setChatFile(e.target.files[0])}
+                    />
+                  </label>
+
                   <input
                     type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder={`اكتب رسالة بصفتك (${loggedInUser.name})...`}
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                    value={chatText}
+                    onChange={(e) => setChatText(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                    placeholder="اكتب رسالتك..."
+                    style={{
+                      flex: 1,
+                      backgroundColor: "#080c14",
+                      border: "1px solid #1e293b",
+                      borderRadius: "10px",
+                      padding: "10px 14px",
+                      color: "#fff",
+                      fontSize: "13px",
+                      outline: "none"
+                    }}
                   />
+
                   <button
-                    type="submit"
-                    className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-lg shadow-emerald-600/20"
+                    onClick={handleSendMessage}
+                    style={{
+                      backgroundColor: "#0284c7",
+                      color: "#fff",
+                      border: "none",
+                      padding: "10px 20px",
+                      borderRadius: "10px",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                      fontSize: "13px"
+                    }}
                   >
-                    <Send size={16} /> إرسال
+                    إرسال
                   </button>
-                </form>
+                </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* 2. الأقسام الشخصية (عرض وحفظ التقرير و الملاحظات) */}
-            {activeTab !== 'public' && (
-              <div className="space-y-6">
-                
-                {/* تنبيه إذا لم يكن يملك صلاحية التعديل */}
-                {!isEditable && (
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-400 flex items-center gap-2">
-                    <Lock size={16} />
-                    <span>أنت الآن في وضع "العرض فقط". يمكنك رؤية بيانات {currentViewObj?.name} ولكن لا يمكنك التعديل عليها.</span>
+          {activeTab !== "general" && (
+            <div style={{ maxWidth: "900px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
+              <div style={{
+                backgroundColor: "#0f172a",
+                border: "1px solid #1e293b",
+                borderRadius: "16px",
+                padding: "20px 24px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }}>
+                <div>
+                  <h1 style={{ fontSize: "20px", fontWeight: "800", margin: 0 }}>
+                    حساب: {ACCOUNTS.find((a) => a.id === activeTab)?.name}
+                  </h1>
+                  <p style={{ fontSize: "12px", color: "#64748b", margin: "4px 0 0 0" }}>
+                    {currentUser.id === activeTab ? "إدارة التقرير الخاص بك والملاحظات السرية" : "استعراض تقرير هذا العضو (قراءة فقط)"}
+                  </p>
+                </div>
+
+                <div style={{
+                  backgroundColor: "#080c14",
+                  border: "1px solid #0284c7",
+                  padding: "10px 20px",
+                  borderRadius: "12px",
+                  textAlign: "center"
+                }}>
+                  <div style={{ fontSize: "10px", color: "#94a3b8" }}>التقرير الحالي</div>
+                  <div style={{ fontSize: "20px", fontWeight: "900", color: "#38bdf8" }}>
+                    تقرير رقم [{latestReport ? latestReport.number : 0}]
                   </div>
-                )}
+                </div>
+              </div>
 
-                {/* أداة تقاريري */}
-                <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4">
-                  <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
-                    <FileText className="text-blue-400" size={24} />
-                    <h3 className="text-base font-bold text-white">أداة تقاريري ({currentViewObj?.name})</h3>
-                  </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                <div style={{
+                  backgroundColor: "#0f172a",
+                  border: "1px solid #1e293b",
+                  borderRadius: "16px",
+                  padding: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px"
+                }}>
+                  <h3 style={{ fontSize: "15px", fontWeight: "bold", margin: 0, borderBottom: "1px solid #1e293b", paddingBottom: "10px" }}>
+                    📊 تقريري
+                  </h3>
 
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <label className="text-xs text-slate-400 block mb-1.5">رقم التقرير (من 1 إلى 100):</label>
+                  {currentUser.id === activeTab ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                       <input
                         type="number"
-                        min="1"
+                        min="0"
                         max="100"
-                        disabled={!isEditable}
                         value={inputReportNum}
                         onChange={(e) => setInputReportNum(e.target.value)}
-                        placeholder="مثال: 50"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                        placeholder="أدخل رقم التقرير (0 - 100)..."
+                        style={{
+                          backgroundColor: "#080c14",
+                          border: "1px solid #1e293b",
+                          borderRadius: "10px",
+                          padding: "10px",
+                          color: "#fff",
+                          fontSize: "13px",
+                          outline: "none"
+                        }}
                       />
+                      {reportError && <span style={{ color: "#ef4444", fontSize: "11px" }}>{reportError}</span>}
+
+                      <button
+                        onClick={handleAddReport}
+                        style={{
+                          backgroundColor: "#0284c7",
+                          color: "#fff",
+                          border: "none",
+                          padding: "10px",
+                          borderRadius: "10px",
+                          fontWeight: "bold",
+                          cursor: "pointer",
+                          fontSize: "13px"
+                        }}
+                      >
+                        تأكيد
+                      </button>
                     </div>
-                    {isEditable && (
-                      <div className="flex items-end gap-2 pt-6">
-                        <button
-                          onClick={handleSaveReport}
-                          className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
+                  ) : (
+                    <div style={{ fontSize: "12px", color: "#64748b" }}>🔒 لا يمكنك تعديل تقارير هذا الحساب.</div>
+                  )}
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px" }}>
+                    <div style={{ fontSize: "12px", fontWeight: "bold", color: "#94a3b8" }}>السجلات:</div>
+                    {activeAccountReports.length === 0 ? (
+                      <div style={{ fontSize: "12px", color: "#475569", textAlign: "center", padding: "20px 0" }}>لا توجد تقارير.</div>
+                    ) : (
+                      activeAccountReports.map((item) => (
+                        <div
+                          key={item.id}
+                          style={{
+                            backgroundColor: "#080c14",
+                            border: "1px solid #1e293b",
+                            padding: "12px",
+                            borderRadius: "10px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "8px"
+                          }}
                         >
-                          <CheckCircle size={16} /> تأكيد
-                        </button>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "14px", fontWeight: "bold", color: "#38bdf8" }}>تقرير رقم [{item.number}]</span>
+                            <button
+                              onClick={() => shareReportToChat(item.number)}
+                              style={{
+                                backgroundColor: "rgba(2, 132, 199, 0.2)",
+                                border: "1px solid #0284c7",
+                                color: "#38bdf8",
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                fontSize: "10px",
+                                cursor: "pointer"
+                              }}
+                            >
+                              مشاركة بالشات
+                            </button>
+                          </div>
+                          <div style={{ fontSize: "10px", color: "#64748b", textAlign: "left", direction: "ltr" }}>
+                            {item.timestamp}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div style={{
+                  backgroundColor: "#0f172a",
+                  border: "1px solid #1e293b",
+                  borderRadius: "16px",
+                  padding: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px"
+                }}>
+                  <h3 style={{ fontSize: "15px", fontWeight: "bold", margin: 0, borderBottom: "1px solid #1e293b", paddingBottom: "10px", display: "flex", justifyContent: "space-between" }}>
+                    <span>📝 الملاحظات</span>
+                    {currentUser.id === activeTab && <span style={{ fontSize: "10px", color: "#10b981" }}>🔒 سرية وحصرية</span>}
+                  </h3>
+
+                  {currentUser.id === activeTab ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      <textarea
+                        value={noteText}
+                        onChange={(e) => setNoteText(e.target.value)}
+                        placeholder="اكتب ملاحظاتك السرية هنا..."
+                        rows={3}
+                        style={{
+                          backgroundColor: "#080c14",
+                          border: "1px solid #1e293b",
+                          borderRadius: "10px",
+                          padding: "10px",
+                          color: "#fff",
+                          fontSize: "12px",
+                          outline: "none",
+                          resize: "none"
+                        }}
+                      />
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <label style={{
+                          backgroundColor: "#1e293b",
+                          color: "#94a3b8",
+                          padding: "6px 10px",
+                          borderRadius: "8px",
+                          fontSize: "11px",
+                          cursor: "pointer"
+                        }}>
+                          📎 إرفاق ملف
+                          <input type="file" style={{ display: "none" }} onChange={(e) => e.target.files && setNoteFile(e.target.files[0])} />
+                        </label>
+
                         <button
-                          onClick={handleResetReport}
-                          className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-all border border-slate-700 flex items-center gap-1.5"
+                          onClick={handleAddNote}
+                          style={{
+                            backgroundColor: "#0284c7",
+                            color: "#fff",
+                            border: "none",
+                            padding: "6px 16px",
+                            borderRadius: "8px",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          }}
                         >
-                          <RotateCcw size={16} /> إعادة تعيين
+                          حفظ
                         </button>
                       </div>
-                    )}
-                  </div>
-                </div>
 
-                {/* أداة مهم */}
-                <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4">
-                  <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
-                    <AlertCircle className="text-amber-400" size={24} />
-                    <h3 className="text-base font-bold text-white">أداة مهم ({currentViewObj?.name})</h3>
-                  </div>
-
-                  <div className="space-y-3">
-                    <textarea
-                      rows={5}
-                      disabled={!isEditable}
-                      value={inputImportant}
-                      onChange={(e) => setInputImportant(e.target.value)}
-                      placeholder={isEditable ? "اكتب الملاحظات والمهام الهامة..." : "لا توجد صلاحية لكتابة ملاحظات لهذا الحساب."}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-all resize-none disabled:opacity-50"
-                    ></textarea>
-                    
-                    {isEditable && (
-                      <button
-                        onClick={handleSaveImportant}
-                        className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-amber-600/20"
-                      >
-                        <Save size={16} /> حفظ الملاحظة
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* لوحة التحكم بالإتاحة للمسؤول N7H */}
-                {loggedInUser.isAdmin && (
-                  <div className="p-6 rounded-2xl bg-blue-950/20 border border-blue-500/30 space-y-4">
-                    <div className="flex items-center gap-2 text-blue-400 font-bold text-sm">
-                      <Key size={18} />
-                      <span>إدارة تفعيل/تعطيل الحسابات (خاص بالمدير N7H)</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
+                        {activeAccountNotes.map((note) => (
+                          <div key={note.id} style={{
+                            backgroundColor: "#080c14",
+                            border: "1px solid #1e293b",
+                            padding: "10px",
+                            borderRadius: "8px",
+                            fontSize: "12px"
+                          }}>
+                            <p style={{ margin: 0, color: "#e2e8f0" }}>{note.text}</p>
+                            {note.fileUrl && (
+                              <div style={{ marginTop: "6px" }}>
+                                {note.fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                  <img src={note.fileUrl} alt="attached" style={{ maxHeight: "100px", borderRadius: "6px" }} />
+                                ) : (
+                                  <a href={note.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#38bdf8" }}>📎 {note.fileName}</a>
+                                )}
+                              </div>
+                            )}
+                            <div style={{ fontSize: "9px", color: "#64748b", textAlign: "left", marginTop: "4px" }}>{note.timestamp}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-3">
-                      {users.filter((u) => !u.isAdmin).map((u) => (
-                        <button
-                          key={u.id}
-                          onClick={() => toggleUserAccess(u.id)}
-                          className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 ${
-                            u.enabled
-                              ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/40'
-                              : 'bg-red-600/20 text-red-400 border-red-500/40'
-                          }`}
-                        >
-                          <span>{u.name}</span>
-                          <span>{u.enabled ? '(مُفعل)' : '(معطل)'}</span>
-                        </button>
-                      ))}
+                  ) : (
+                    <div style={{ fontSize: "12px", color: "#64748b", textAlign: "center", padding: "40px 0" }}>
+                      🔒 هذه الملاحظات سرية ولا يمكن لأحد الاطلاع عليها سواك.
                     </div>
-                  </div>
-                )}
-
+                  )}
+                </div>
               </div>
-            )}
-
-          </div>
-
-          {/* القائمة اليسرى (عرض التقرير بشكل بارز) */}
-          <div className="w-80 space-y-5 flex-shrink-0">
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-900/40 via-slate-900 to-slate-900 border border-blue-500/30 text-center space-y-3 shadow-xl">
-              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block">
-                تقرير ({activeTab === 'public' ? loggedInUser.name : currentViewObj?.name})
-              </span>
-              
-              {reportsData[currentViewId] ? (
-                <div className="p-4 bg-blue-600/20 border border-blue-500/40 rounded-2xl space-y-1">
-                  <span className="text-xs text-blue-300 font-medium block">التقرير المحفوظ</span>
-                  <div className="text-2xl font-black text-white tracking-wide">
-                    تقرير رقم <span className="text-blue-400">{reportsData[currentViewId]}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 bg-slate-800/40 border border-slate-800 rounded-2xl text-xs text-slate-500">
-                  لا يوجد رقم تقرير محفوظ حالياً.
-                </div>
-              )}
             </div>
-
-            <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
-              <h4 className="font-bold text-xs text-amber-400 border-b border-slate-800 pb-2 flex items-center gap-1.5">
-                <AlertCircle size={14} /> ملاحظات "مهم" الحالية:
-              </h4>
-              <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed min-h-[60px]">
-                {importantData[currentViewId] || 'لا توجد ملاحظات محفوظة.'}
-              </p>
-            </div>
-          </div>
-        </div>
+          )}
+        </main>
       </div>
     </div>
   );
