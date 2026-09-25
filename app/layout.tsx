@@ -39,7 +39,7 @@ export default function N7HToolkit() {
   const [newMessageText, setNewMessageText] = useState("");
   const [userDataMap, setUserDataMap] = useState<Record<string, UserData>>({});
 
-  // Login Modal States
+  // Login Modal
   const [loginModalUser, setLoginModalUser] = useState<UserProfile | null>(null);
   const [inputPassword, setInputPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -72,7 +72,6 @@ export default function N7HToolkit() {
       setSelectedTab(user.id);
       return;
     }
-    // فتح نافذة كلمة المرور
     setLoginModalUser(user);
     setInputPassword("");
     setPasswordError("");
@@ -171,7 +170,7 @@ export default function N7HToolkit() {
           {/* Main Content */}
           <main className="md:col-span-3 bg-slate-900/60 p-6 rounded-2xl border border-slate-800 shadow-xl">
             
-            {/* General Section */}
+            {/* General Chat Section */}
             {selectedTab === "general" && (
               <div>
                 <h2 className="text-xl font-bold text-slate-100 border-b border-slate-800 pb-3 mb-4">عام شات</h2>
@@ -208,7 +207,7 @@ export default function N7HToolkit() {
               </div>
             )}
 
-            {/* User Section */}
+            {/* User Private Section */}
             {selectedTab !== "general" && (
               <div className="space-y-6">
                 <h2 className="text-xl font-bold text-slate-100 border-b border-slate-800 pb-3">
@@ -287,7 +286,7 @@ export default function N7HToolkit() {
 
       </div>
 
-      {/* Login Password Modal */}
+      {/* Login Modal */}
       {loginModalUser && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl">
