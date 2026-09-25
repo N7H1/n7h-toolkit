@@ -51,7 +51,7 @@ const JOBS = [
   "الامن الدبلوماسي",
 ];
 
-export default function N7HPCPage() {
+export default function N7HPortal() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [selectedJob, setSelectedJob] = useState<string>("");
   const [showJobMenu, setShowJobMenu] = useState<boolean>(false);
@@ -61,7 +61,6 @@ export default function N7HPCPage() {
   const [loginError, setLoginError] = useState<string>("");
 
   const [activeTab, setActiveTab] = useState<string>("general");
-  const [chatSubTab, setChatSubTab] = useState<string>("chat");
 
   const [reportsMap, setReportsMap] = useState<Record<string, ReportItem[]>>({});
   const [notesMap, setNotesMap] = useState<Record<string, NoteItem[]>>({});
@@ -74,10 +73,6 @@ export default function N7HPCPage() {
 
   const [chatText, setChatText] = useState<string>("");
   const [chatFile, setChatFile] = useState<File | null>(null);
-
-  // Audio / Mic / Network State Simulation
-  const [micActive, setMicActive] = useState(false);
-  const [ping, setPing] = useState(18);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("n7h_user");
@@ -138,7 +133,7 @@ export default function N7HPCPage() {
     if (!currentUser) return;
     const num = parseInt(inputReportNum, 10);
     if (isNaN(num) || num < 0 || num > 100) {
-      setReportError("يرجى كتابة رقم صحيح من 0 إلى 100");
+      setReportError("يرجى كتابة رقم من 0 إلى 100");
       return;
     }
     setReportError("");
@@ -161,14 +156,6 @@ export default function N7HPCPage() {
       [currentUser.id]: [newReport, ...userReports],
     });
     setInputReportNum("");
-  };
-
-  const handleResetReports = () => {
-    if (!currentUser) return;
-    setReportsMap({
-      ...reportsMap,
-      [currentUser.id]: [],
-    });
   };
 
   const handleAddNote = () => {
@@ -246,53 +233,100 @@ export default function N7HPCPage() {
 
     setChatMessages((prev) => [...prev, newMsg]);
     setActiveTab("general");
-    setChatSubTab("chat");
   };
 
-  // Login Screen
+  // شاشة تسجيل الدخول
   if (!currentUser) {
     return (
-      <div dir="rtl" className="min-h-screen bg-[#070a12] text-slate-100 flex items-center justify-center p-4 font-sans">
-        <div className="w-full max-w-md bg-[#0d1322] border border-slate-800 rounded-2xl p-6 shadow-2xl">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-              N7H PC TOOLKIT
-            </h1>
-            <p className="text-slate-400 text-xs mt-1">تسجيل الدخول للنظام الرئيسي</p>
+      <div dir="rtl" style={{
+        minHeight: "100vh",
+        backgroundColor: "#080c14",
+        color: "#f1f5f9",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+      }}>
+        <div style={{
+          width: "100%",
+          maxWidth: "400px",
+          backgroundColor: "#0f172a",
+          border: "1px solid #1e293b",
+          borderRadius: "16px",
+          padding: "32px",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)"
+        }}>
+          <div style={{ textAlign: "center", marginBottom: "28px" }}>
+            <h1 style={{
+              fontSize: "24px",
+              fontWeight: "900",
+              letterSpacing: "1px",
+              color: "#38bdf8",
+              margin: "0 0 6px 0"
+            }}>N7H PORTAL</h1>
+            <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>منظومة إدارة التقارير والملاحظات</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2">اختر الحساب:</label>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#94a3b8", marginBottom: "8px" }}>اختر الحساب:</label>
               <select
                 value={loginAccountId}
                 onChange={(e) => setLoginAccountId(e.target.value)}
-                className="w-full bg-[#070a12] border border-slate-800 rounded-xl p-3 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+                style={{
+                  width: "100%",
+                  backgroundColor: "#080c14",
+                  border: "1px solid #334155",
+                  borderRadius: "10px",
+                  padding: "12px",
+                  color: "#fff",
+                  fontSize: "14px",
+                  outline: "none"
+                }}
               >
                 {ACCOUNTS.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name}
-                  </option>
+                  <option key={acc.id} value={acc.id}>{acc.name}</option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2">كلمة المرور:</label>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#94a3b8", marginBottom: "8px" }}>كلمة المرور:</label>
               <input
                 type="password"
                 value={loginPass}
                 onChange={(e) => setLoginPass(e.target.value)}
                 placeholder="أدخل كلمة المرور..."
-                className="w-full bg-[#070a12] border border-slate-800 rounded-xl p-3 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+                style={{
+                  width: "100%",
+                  backgroundColor: "#080c14",
+                  border: "1px solid #334155",
+                  borderRadius: "10px",
+                  padding: "12px",
+                  color: "#fff",
+                  fontSize: "14px",
+                  outline: "none",
+                  boxSizing: "border-box"
+                }}
               />
             </div>
 
-            {loginError && <p className="text-red-400 text-xs text-center font-medium">{loginError}</p>}
+            {loginError && <p style={{ color: "#ef4444", fontSize: "12px", margin: 0, textAlign: "center" }}>{loginError}</p>}
 
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all text-sm shadow-lg shadow-blue-600/30"
+              style={{
+                width: "100%",
+                backgroundColor: "#0284c7",
+                color: "#fff",
+                fontWeight: "bold",
+                padding: "12px",
+                borderRadius: "10px",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "14px",
+                marginTop: "10px"
+              }}
             >
               تسجيل الدخول
             </button>
@@ -307,108 +341,199 @@ export default function N7HPCPage() {
   const latestReport = activeAccountReports[0];
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#070a12] text-slate-100 font-sans flex flex-col">
-      {/* Top Navbar */}
-      <header className="h-16 border-b border-slate-800/80 bg-[#0b0f19]/90 backdrop-blur px-6 flex items-center justify-between sticky top-0 z-40">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-md shadow-blue-500/20">
-            N
-          </div>
-          <span className="font-extrabold text-lg tracking-wider bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">
-            N7H <span className="text-xs text-slate-400 font-normal">PC TOOLKIT</span>
-          </span>
+    <div dir="rtl" style={{
+      minHeight: "100vh",
+      backgroundColor: "#080c14",
+      color: "#f1f5f9",
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      display: "flex",
+      flexDirection: "column"
+    }}>
+      {/* Top Header */}
+      <header style={{
+        height: "65px",
+        backgroundColor: "#0f172a",
+        borderBottom: "1px solid #1e293b",
+        padding: "0 24px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        position: "sticky",
+        top: 0,
+        zIndex: 100
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{
+            width: "36px",
+            height: "36px",
+            backgroundColor: "#0284c7",
+            borderRadius: "8px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: "900",
+            color: "#fff"
+          }}>N</div>
+          <span style={{ fontSize: "18px", fontWeight: "800", color: "#38bdf8", letterSpacing: "1px" }}>N7H PORTAL</span>
         </div>
 
-        {/* Search Bar */}
-        <div className="hidden md:flex items-center bg-[#111726] border border-slate-800 rounded-xl px-4 py-1.5 w-80">
-          <input
-            type="text"
-            placeholder="ابحث عن أداة أو اسم..."
-            className="bg-transparent text-xs w-full text-slate-200 placeholder-slate-500 focus:outline-none"
-          />
-        </div>
-
-        <div className="flex items-center gap-4">
-          {/* Job Selection Menu Button (أعلى يمين/يسار الهيدر) */}
-          <div className="relative">
+        {/* Right side controls */}
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          {/* اختر الوظيفة Button */}
+          <div style={{ position: "relative" }}>
             <button
               onClick={() => setShowJobMenu(!showJobMenu)}
-              className="bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+              style={{
+                backgroundColor: "rgba(2, 132, 199, 0.15)",
+                border: "1px solid #0284c7",
+                color: "#38bdf8",
+                padding: "8px 16px",
+                borderRadius: "10px",
+                fontSize: "13px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px"
+              }}
             >
               <span>💼 {selectedJob ? selectedJob : "اختر الوظيفه"}</span>
-              <span className="text-[10px]">▼</span>
+              <span style={{ fontSize: "10px" }}>▼</span>
             </button>
 
             {showJobMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-[#0d1322] border border-slate-800 rounded-xl shadow-2xl p-1 z-50">
+              <div style={{
+                position: "absolute",
+                top: "45px",
+                right: 0,
+                width: "180px",
+                backgroundColor: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: "12px",
+                boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                padding: "6px",
+                zIndex: 200
+              }}>
                 {JOBS.map((job) => (
-                  <button
+                  <div
                     key={job}
                     onClick={() => handleSelectJob(job)}
-                    className={`w-full text-right px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                      selectedJob === job ? "bg-blue-600 text-white font-bold" : "text-slate-300 hover:bg-slate-800"
-                    }`}
+                    style={{
+                      padding: "10px 12px",
+                      fontSize: "12px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      backgroundColor: selectedJob === job ? "#0284c7" : "transparent",
+                      color: selectedJob === job ? "#fff" : "#cbd5e1",
+                      fontWeight: selectedJob === job ? "bold" : "normal",
+                      marginBottom: "2px"
+                    }}
                   >
                     {job}
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* User Account Info */}
-          <div className="flex items-center gap-2 bg-[#111726] border border-slate-800 px-3 py-1.5 rounded-xl">
-            <div className="text-right">
-              <div className="text-xs font-bold text-slate-100">{currentUser.name}</div>
-              {selectedJob && <div className="text-[10px] text-blue-400">{selectedJob}</div>}
-            </div>
+          <div style={{
+            backgroundColor: "#1e293b",
+            padding: "6px 14px",
+            borderRadius: "10px",
+            fontSize: "12px",
+            fontWeight: "bold",
+            color: "#e2e8f0"
+          }}>
+            {currentUser.name}
           </div>
 
           <button
             onClick={handleLogout}
-            className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-xl transition-all"
+            style={{
+              backgroundColor: "rgba(239, 68, 68, 0.15)",
+              border: "1px solid rgba(239, 68, 68, 0.4)",
+              color: "#f87171",
+              padding: "6px 14px",
+              borderRadius: "10px",
+              fontSize: "12px",
+              cursor: "pointer",
+              fontWeight: "bold"
+            }}
           >
             خروج
           </button>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      {/* Body Area */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {/* Right Sidebar */}
-        <aside className="w-64 bg-[#0b0f19] border-l border-slate-800/80 p-4 flex flex-col gap-2 shrink-0">
-          <div className="text-[11px] font-semibold text-slate-500 uppercase px-3 mb-1">الأدوات العامة</div>
+        <aside style={{
+          width: "240px",
+          backgroundColor: "#0f172a",
+          borderLeft: "1px solid #1e293b",
+          padding: "20px 12px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          shrink: 0
+        }}>
+          <div style={{ fontSize: "11px", fontWeight: "bold", color: "#64748b", padding: "0 10px", marginBottom: "4px" }}>
+            الأقسام الرئيسية
+          </div>
 
           <button
             onClick={() => setActiveTab("general")}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              activeTab === "general"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 font-bold"
-                : "text-slate-400 hover:bg-[#111726] hover:text-slate-200"
-            }`}
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: "10px",
+              fontSize: "13px",
+              fontWeight: "bold",
+              textAlign: "right",
+              border: "none",
+              cursor: "pointer",
+              backgroundColor: activeTab === "general" ? "#0284c7" : "transparent",
+              color: activeTab === "general" ? "#fff" : "#94a3b8"
+            }}
           >
-            🌐 <span>عام</span>
+            💬 شات
           </button>
 
-          <div className="text-[11px] font-semibold text-slate-500 uppercase px-3 mt-4 mb-1">الأعضاء والتقارير</div>
+          <div style={{ fontSize: "11px", fontWeight: "bold", color: "#64748b", padding: "0 10px", marginTop: "16px", marginBottom: "4px" }}>
+            قائمة الأعضاء
+          </div>
 
           {ACCOUNTS.map((acc) => {
             const isActive = activeTab === acc.id;
-            const isMe = currentUser.id === acc.id;
             return (
               <button
                 key={acc.id}
                 onClick={() => setActiveTab(acc.id)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 font-bold"
-                    : "text-slate-400 hover:bg-[#111726] hover:text-slate-200"
-                }`}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  borderRadius: "10px",
+                  fontSize: "13px",
+                  fontWeight: "bold",
+                  textAlign: "right",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  backgroundColor: isActive ? "#0284c7" : "transparent",
+                  color: isActive ? "#fff" : "#94a3b8"
+                }}
               >
                 <span>{acc.name}</span>
-                {isMe && (
-                  <span className="text-[9px] bg-blue-500/30 border border-blue-400/40 text-blue-200 px-1.5 py-0.5 rounded">
-                    حسابك
-                  </span>
+                {currentUser.id === acc.id && (
+                  <span style={{
+                    fontSize: "10px",
+                    backgroundColor: "rgba(255,255,255,0.2)",
+                    padding: "2px 6px",
+                    borderRadius: "4px"
+                  }}>حسابك</span>
                 )}
               </button>
             );
@@ -416,252 +541,289 @@ export default function N7HPCPage() {
         </aside>
 
         {/* Main Workspace */}
-        <main className="flex-1 bg-[#070a12] p-6 overflow-y-auto">
-          {/* GENERAL TAB */}
+        <main style={{ flex: 1, padding: "28px", overflowY: "auto" }}>
+          {/* General Tab (Chat Only) */}
           {activeTab === "general" && (
-            <div className="space-y-6 max-w-5xl mx-auto">
-              {/* General Sub Navigation */}
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto">
-                <button
-                  onClick={() => setChatSubTab("chat")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                    chatSubTab === "chat"
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                      : "bg-[#0d1322] text-slate-400 border border-slate-800 hover:bg-[#131b30]"
-                  }`}
-                >
-                  💬 شات
-                </button>
-                {[1, 2, 3, 4, 5].map((i) => {
-                  const key = `unknown${i}`;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => setChatSubTab(key)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                        chatSubTab === key
-                          ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                          : "bg-[#0d1322] text-slate-400 border border-slate-800 hover:bg-[#131b30]"
-                      }`}
-                    >
-                      ⚙️ مجهول {i}
-                    </button>
-                  );
-                })}
-              </div>
+            <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+              <div style={{
+                backgroundColor: "#0f172a",
+                border: "1px solid #1e293b",
+                borderRadius: "16px",
+                padding: "20px",
+                display: "flex",
+                flexDirection: "column",
+                height: "600px",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.3)"
+              }}>
+                <div style={{
+                  borderBottom: "1px solid #1e293b",
+                  paddingBottom: "12px",
+                  marginBottom: "16px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center"
+                }}>
+                  <h2 style={{ fontSize: "16px", fontWeight: "bold", margin: 0, color: "#f8fafc" }}>💬 الشات العام</h2>
+                  {selectedJob && <span style={{ fontSize: "12px", color: "#38bdf8" }}>الوظيفة الحالية: {selectedJob}</span>}
+                </div>
 
-              {/* Chat Sub-Tab */}
-              {chatSubTab === "chat" && (
-                <div className="bg-[#0d1322] border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col h-[550px]">
-                  <h2 className="text-md font-bold text-slate-200 border-b border-slate-800 pb-3 mb-4 flex items-center justify-between">
-                    <span>💬 الشات العام</span>
-                    {selectedJob && <span className="text-xs text-blue-400 font-normal">الوظيفة: {selectedJob}</span>}
-                  </h2>
-
-                  <div className="flex-1 overflow-y-auto space-y-3 p-3 bg-[#070a12] rounded-xl border border-slate-800/60 mb-4">
-                    {chatMessages.length === 0 ? (
-                      <div className="h-full flex items-center justify-center text-slate-600 text-xs">
-                        لا توجد رسائل في الشات العام حالياً.
-                      </div>
-                    ) : (
-                      chatMessages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={`p-3 rounded-xl border max-w-lg ${
-                            msg.senderId === currentUser.id
-                              ? "mr-auto bg-blue-950/40 border-blue-800/50 text-slate-100"
-                              : "ml-auto bg-[#111726] border-slate-800 text-slate-200"
-                          }`}
-                        >
-                          <div className="flex justify-between items-center gap-4 mb-1">
-                            <span className="font-bold text-xs text-blue-400">
-                              {msg.senderName} {msg.senderJob && `[${msg.senderJob}]`}
-                            </span>
-                            <span className="text-[10px] text-slate-500">{msg.timestamp}</span>
-                          </div>
-                          {msg.text && <p className="text-xs leading-relaxed text-slate-200 whitespace-pre-wrap">{msg.text}</p>}
-
-                          {msg.fileUrl && (
-                            <div className="mt-2 pt-2 border-t border-slate-800">
-                              {msg.fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                <img src={msg.fileUrl} alt="attachment" className="max-h-48 rounded-lg border border-slate-700 object-cover" />
-                              ) : (
-                                <a
-                                  href={msg.fileUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-2 text-xs text-blue-400 hover:underline bg-[#070a12] p-2 rounded-lg border border-slate-800"
-                                >
-                                  📎 {msg.fileName || "تحميل الملف المرفق"}
-                                </a>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  {chatFile && (
-                    <div className="mb-2 px-3 py-1 bg-[#111726] border border-slate-800 rounded-lg flex items-center justify-between text-xs text-slate-300">
-                      <span>📎 مرفق: {chatFile.name}</span>
-                      <button onClick={() => setChatFile(null)} className="text-red-400 text-xs">إلغاء</button>
+                {/* Messages Feed */}
+                <div style={{
+                  flex: 1,
+                  overflowY: "auto",
+                  padding: "12px",
+                  backgroundColor: "#080c14",
+                  borderRadius: "12px",
+                  border: "1px solid #1e293b",
+                  marginBottom: "16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px"
+                }}>
+                  {chatMessages.length === 0 ? (
+                    <div style={{ textAlign: "center", color: "#64748b", fontSize: "13px", marginTop: "auto", marginBottom: "auto" }}>
+                      لا توجد رسائل في الشات العام.
                     </div>
+                  ) : (
+                    chatMessages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: "12px",
+                          maxWidth: "75%",
+                          alignSelf: msg.senderId === currentUser.id ? "flex-start" : "flex-end",
+                          backgroundColor: msg.senderId === currentUser.id ? "#0369a1" : "#1e293b",
+                          color: "#fff"
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", marginBottom: "4px" }}>
+                          <span style={{ fontSize: "12px", fontWeight: "bold", color: "#7dd3fc" }}>
+                            {msg.senderName} {msg.senderJob && `[${msg.senderJob}]`}
+                          </span>
+                          <span style={{ fontSize: "10px", color: "#94a3b8" }}>{msg.timestamp}</span>
+                        </div>
+                        {msg.text && <p style={{ fontSize: "13px", margin: 0, whiteSpace: "pre-wrap", lineHeight: "1.4" }}>{msg.text}</p>}
+
+                        {msg.fileUrl && (
+                          <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                            {msg.fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                              <img src={msg.fileUrl} alt="uploaded" style={{ maxHeight: "180px", borderRadius: "8px", display: "block" }} />
+                            ) : (
+                              <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#38bdf8", fontSize: "12px", textDecoration: "underline" }}>
+                                📎 {msg.fileName || "ملف مرفق"}
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))
                   )}
+                </div>
 
-                  <div className="flex items-center gap-2 bg-[#070a12] p-2 rounded-xl border border-slate-800">
-                    <label className="cursor-pointer bg-[#111726] hover:bg-slate-800 text-slate-300 p-2 rounded-lg border border-slate-800 transition-all text-xs">
-                      📎
-                      <input
-                        type="file"
-                        className="hidden"
-                        onChange={(e) => e.target.files && setChatFile(e.target.files[0])}
-                      />
-                    </label>
+                {chatFile && (
+                  <div style={{
+                    fontSize: "12px",
+                    color: "#94a3b8",
+                    marginBottom: "8px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    backgroundColor: "#1e293b",
+                    padding: "6px 12px",
+                    borderRadius: "8px"
+                  }}>
+                    <span>📎 المرفق: {chatFile.name}</span>
+                    <span onClick={() => setChatFile(null)} style={{ color: "#f87171", cursor: "pointer" }}>إلغاء</span>
+                  </div>
+                )}
 
+                {/* Input Controls */}
+                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  <label style={{
+                    backgroundColor: "#1e293b",
+                    color: "#cbd5e1",
+                    padding: "10px 14px",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    fontSize: "13px"
+                  }}>
+                    📎
                     <input
-                      type="text"
-                      value={chatText}
-                      onChange={(e) => setChatText(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                      placeholder="اكتب رسالتك..."
-                      className="flex-1 bg-transparent text-slate-100 placeholder-slate-500 text-xs focus:outline-none px-2"
+                      type="file"
+                      style={{ display: "none" }}
+                      onChange={(e) => e.target.files && setChatFile(e.target.files[0])}
                     />
+                  </label>
 
-                    <button
-                      onClick={handleSendMessage}
-                      className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition-all shadow-md shadow-blue-600/30"
-                    >
-                      إرسال
-                    </button>
-                  </div>
-                </div>
-              )}
+                  <input
+                    type="text"
+                    value={chatText}
+                    onChange={(e) => setChatText(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                    placeholder="اكتب رسالتك..."
+                    style={{
+                      flex: 1,
+                      backgroundColor: "#080c14",
+                      border: "1px solid #1e293b",
+                      borderRadius: "10px",
+                      padding: "10px 14px",
+                      color: "#fff",
+                      fontSize: "13px",
+                      outline: "none"
+                    }}
+                  />
 
-              {chatSubTab.startsWith("unknown") && (
-                <div className="bg-[#0d1322] border border-slate-800 rounded-2xl p-12 text-center shadow-xl">
-                  <div className="text-4xl mb-3">🛠️</div>
-                  <h3 className="text-xl font-bold text-slate-200 mb-2">جاري العمل على السكربت</h3>
-                  <p className="text-slate-500 text-xs">هذه الأداة قيد التطوير حالياً.</p>
-                </div>
-              )}
-
-              {/* Hardware & PC Diagnostics Section */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-                <div className="bg-[#0d1322] border border-slate-800 rounded-2xl p-4">
-                  <h3 className="text-xs font-bold text-slate-300 mb-3">🔊 اختبار المايك والسماعة</h3>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setMicActive(!micActive)}
-                      className={`w-full py-2 rounded-xl text-xs font-bold border transition-all ${
-                        micActive ? "bg-emerald-500/20 border-emerald-500 text-emerald-300" : "bg-[#070a12] border-slate-800 text-slate-400"
-                      }`}
-                    >
-                      {micActive ? "🎙️ المايك شغال (إيقاف)" : "🎙️ فحص المايك"}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-[#0d1322] border border-slate-800 rounded-2xl p-4">
-                  <h3 className="text-xs font-bold text-slate-300 mb-3">🌐 اختبار الشبكة</h3>
-                  <div className="flex items-center justify-between bg-[#070a12] p-2.5 rounded-xl border border-slate-800">
-                    <span className="text-xs text-slate-400">Ping الاتصال:</span>
-                    <span className="text-xs font-bold text-emerald-400">{ping} ms</span>
-                  </div>
-                </div>
-
-                <div className="bg-[#0d1322] border border-slate-800 rounded-2xl p-4">
-                  <h3 className="text-xs font-bold text-slate-300 mb-3">🔧 حل مشاكل الكمبيوتر</h3>
-                  <p className="text-[11px] text-slate-500">تشخيص أخطاء FPS، المايك، والشاشة السوداء.</p>
+                  <button
+                    onClick={handleSendMessage}
+                    style={{
+                      backgroundColor: "#0284c7",
+                      color: "#fff",
+                      border: "none",
+                      padding: "10px 20px",
+                      borderRadius: "10px",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                      fontSize: "13px"
+                    }}
+                  >
+                    إرسال
+                  </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* MEMBER ACCOUNT TAB */}
+          {/* Member Profile Tab */}
           {activeTab !== "general" && (
-            <div className="max-w-5xl mx-auto space-y-6">
-              {/* Account Header */}
-              <div className="bg-[#0d1322] border border-slate-800 rounded-2xl p-5 shadow-lg flex items-center justify-between">
+            <div style={{ maxWidth: "900px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
+              {/* Account Title Banner */}
+              <div style={{
+                backgroundColor: "#0f172a",
+                border: "1px solid #1e293b",
+                borderRadius: "16px",
+                padding: "20px 24px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }}>
                 <div>
-                  <h1 className="text-xl font-extrabold text-slate-100">
+                  <h1 style={{ fontSize: "20px", fontWeight: "800", margin: 0 }}>
                     حساب: {ACCOUNTS.find((a) => a.id === activeTab)?.name}
                   </h1>
-                  <p className="text-slate-500 text-xs mt-1">
-                    {currentUser.id === activeTab ? "قسمك الخاص بالتقارير والملاحظات" : "تتصفح تقارير هذا العضو (قراءة فقط)"}
+                  <p style={{ fontSize: "12px", color: "#64748b", margin: "4px 0 0 0" }}>
+                    {currentUser.id === activeTab ? "إدارة التقرير الخاص بك والملاحظات السرية" : "استعراض تقرير هذا العضو (قراءة فقط)"}
                   </p>
                 </div>
 
-                {/* Big Report Number View (Top Left) */}
-                <div className="bg-[#070a12] border border-slate-800 px-5 py-3 rounded-2xl text-left">
-                  <div className="text-[10px] text-slate-500 font-medium">التقرير الحالي</div>
-                  <div className="text-2xl font-black text-blue-400">
+                {/* Big Report Badge */}
+                <div style={{
+                  backgroundColor: "#080c14",
+                  border: "1px solid #0284c7",
+                  padding: "10px 20px",
+                  borderRadius: "12px",
+                  textAlign: "center"
+                }}>
+                  <div style={{ fontSize: "10px", color: "#94a3b8" }}>التقرير الحالي</div>
+                  <div style={{ fontSize: "20px", fontWeight: "900", color: "#38bdf8" }}>
                     تقرير رقم [{latestReport ? latestReport.number : 0}]
                   </div>
                 </div>
               </div>
 
-              {/* Main Content Layout */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Right Box: Reports Section */}
-                <div className="bg-[#0d1322] border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
-                  <h3 className="text-sm font-bold text-slate-200 border-b border-slate-800 pb-2">📊 تقريري</h3>
+              {/* Grid Layout: Reports & Notes */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                {/* Reports Card */}
+                <div style={{
+                  backgroundColor: "#0f172a",
+                  border: "1px solid #1e293b",
+                  borderRadius: "16px",
+                  padding: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px"
+                }}>
+                  <h3 style={{ fontSize: "15px", fontWeight: "bold", margin: 0, borderBottom: "1px solid #1e293b", paddingBottom: "10px" }}>
+                    📊 تقريري
+                  </h3>
 
-                  {/* Input Form (Account Owner Only) */}
                   {currentUser.id === activeTab ? (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs text-slate-400 mb-1">أدخل رقم التقرير (0 - 100):</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={inputReportNum}
-                          onChange={(e) => setInputReportNum(e.target.value)}
-                          placeholder="مثال: 50"
-                          className="w-full bg-[#070a12] border border-slate-800 rounded-xl p-3 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
-                        />
-                        {reportError && <p className="text-red-400 text-[11px] mt-1">{reportError}</p>}
-                      </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={inputReportNum}
+                        onChange={(e) => setInputReportNum(e.target.value)}
+                        placeholder="أدخل رقم التقرير (0 - 100)..."
+                        style={{
+                          backgroundColor: "#080c14",
+                          border: "1px solid #1e293b",
+                          borderRadius: "10px",
+                          padding: "10px",
+                          color: "#fff",
+                          fontSize: "13px",
+                          outline: "none"
+                        }}
+                      />
+                      {reportError && <span style={{ color: "#ef4444", fontSize: "11px" }}>{reportError}</span>}
 
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleAddReport}
-                          className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-md shadow-blue-600/20"
-                        >
-                          تأكيد
-                        </button>
-                        <button
-                          onClick={handleResetReports}
-                          className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 font-bold px-4 py-2.5 rounded-xl text-xs transition-all"
-                        >
-                          إعادة تعيين
-                        </button>
-                      </div>
+                      <button
+                        onClick={handleAddReport}
+                        style={{
+                          backgroundColor: "#0284c7",
+                          color: "#fff",
+                          border: "none",
+                          padding: "10px",
+                          borderRadius: "10px",
+                          fontWeight: "bold",
+                          cursor: "pointer",
+                          fontSize: "13px"
+                        }}
+                      >
+                        تأكيد
+                      </button>
                     </div>
                   ) : (
-                    <p className="text-slate-500 text-xs py-2">🔒 لا يمكنك تعديل تقارير هذا الحساب.</p>
+                    <div style={{ fontSize: "12px", color: "#64748b" }}>🔒 لا يمكنك تعديل تقارير هذا الحساب.</div>
                   )}
 
-                  {/* Reports List */}
-                  <div className="space-y-3 pt-2">
-                    <div className="text-xs font-bold text-slate-400">سجل التقارير:</div>
+                  {/* Reports Log */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px" }}>
+                    <div style={{ fontSize: "12px", fontWeight: "bold", color: "#94a3b8" }}>السجلات:</div>
                     {activeAccountReports.length === 0 ? (
-                      <div className="text-slate-600 text-xs py-6 text-center">لا توجد تقارير مسجلة.</div>
+                      <div style={{ fontSize: "12px", color: "#475569", textAlign: "center", padding: "20px 0" }}>لا توجد تقارير.</div>
                     ) : (
                       activeAccountReports.map((item) => (
-                        <div key={item.id} className="bg-[#070a12] border border-slate-800/80 p-3 rounded-xl space-y-2">
-                          <div className="flex justify-between items-start">
-                            <span className="text-sm font-bold text-blue-400">تقرير رقم [{item.number}]</span>
+                        <div
+                          key={item.id}
+                          style={{
+                            backgroundColor: "#080c14",
+                            border: "1px solid #1e293b",
+                            padding: "12px",
+                            borderRadius: "10px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "8px"
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "14px", fontWeight: "bold", color: "#38bdf8" }}>تقرير رقم [{item.number}]</span>
                             <button
                               onClick={() => shareReportToChat(item.number)}
-                              className="text-[10px] bg-blue-600/20 border border-blue-500/30 text-blue-300 px-2 py-0.5 rounded-lg hover:bg-blue-600/40"
+                              style={{
+                                backgroundColor: "rgba(2, 132, 199, 0.2)",
+                                border: "1px solid #0284c7",
+                                color: "#38bdf8",
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                fontSize: "10px",
+                                cursor: "pointer"
+                              }}
                             >
                               مشاركة بالشات
                             </button>
                           </div>
-                          {/* Timestamp at bottom left */}
-                          <div className="text-[10px] text-slate-500 text-leftDir dir-ltr text-left">
+                          <div style={{ fontSize: "10px", color: "#64748b", textAlign: "left", direction: "ltr" }}>
                             {item.timestamp}
                           </div>
                         </div>
@@ -670,65 +832,99 @@ export default function N7HPCPage() {
                   </div>
                 </div>
 
-                {/* Left Box: Notes Section */}
-                <div className="bg-[#0d1322] border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
-                  <h3 className="text-sm font-bold text-slate-200 border-b border-slate-800 pb-2 flex justify-between items-center">
+                {/* Secret Notes Card */}
+                <div style={{
+                  backgroundColor: "#0f172a",
+                  border: "1px solid #1e293b",
+                  borderRadius: "16px",
+                  padding: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px"
+                }}>
+                  <h3 style={{ fontSize: "15px", fontWeight: "bold", margin: 0, borderBottom: "1px solid #1e293b", paddingBottom: "10px", display: "flex", justifyContent: "space-between" }}>
                     <span>📝 الملاحظات</span>
-                    {currentUser.id === activeTab && <span className="text-[10px] text-emerald-400">🔒 سرية وخاصة بك</span>}
+                    {currentUser.id === activeTab && <span style={{ fontSize: "10px", color: "#10b981" }}>🔒 سرية وحصرية</span>}
                   </h3>
 
                   {currentUser.id === activeTab ? (
-                    <div className="space-y-3">
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                       <textarea
                         value={noteText}
                         onChange={(e) => setNoteText(e.target.value)}
-                        placeholder="اكتب ملاحظاتك..."
+                        placeholder="اكتب ملاحظاتك السرية هنا..."
                         rows={3}
-                        className="w-full bg-[#070a12] border border-slate-800 rounded-xl p-3 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500"
+                        style={{
+                          backgroundColor: "#080c14",
+                          border: "1px solid #1e293b",
+                          borderRadius: "10px",
+                          padding: "10px",
+                          color: "#fff",
+                          fontSize: "12px",
+                          outline: "none",
+                          resize: "none"
+                        }}
                       />
 
-                      <div className="flex items-center gap-2">
-                        <label className="cursor-pointer bg-[#070a12] hover:bg-slate-800 text-slate-300 p-2 rounded-xl border border-slate-800 text-xs">
-                          📎 إرفاق ملف/صورة
-                          <input
-                            type="file"
-                            className="hidden"
-                            onChange={(e) => e.target.files && setNoteFile(e.target.files[0])}
-                          />
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <label style={{
+                          backgroundColor: "#1e293b",
+                          color: "#94a3b8",
+                          padding: "6px 10px",
+                          borderRadius: "8px",
+                          fontSize: "11px",
+                          cursor: "pointer"
+                        }}>
+                          📎 إرفاق ملف
+                          <input type="file" style={{ display: "none" }} onChange={(e) => e.target.files && setNoteFile(e.target.files[0])} />
                         </label>
-                        {noteFile && <span className="text-[10px] text-slate-400 truncate max-w-[150px]">{noteFile.name}</span>}
+                        {noteFile && <span style={{ fontSize: "10px", color: "#cbd5e1" }}>{noteFile.name}</span>}
 
                         <button
                           onClick={handleAddNote}
-                          className="mr-auto bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all"
+                          style={{
+                            backgroundColor: "#0284c7",
+                            color: "#fff",
+                            border: "none",
+                            padding: "6px 16px",
+                            borderRadius: "8px",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                            fontSize: "12px"
+                          }}
                         >
                           حفظ
                         </button>
                       </div>
 
-                      <div className="space-y-2 pt-2">
+                      {/* Notes Feed */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
                         {activeAccountNotes.map((note) => (
-                          <div key={note.id} className="bg-[#070a12] border border-slate-800 p-3 rounded-xl text-xs space-y-1">
-                            <p className="text-slate-200">{note.text}</p>
+                          <div key={note.id} style={{
+                            backgroundColor: "#080c14",
+                            border: "1px solid #1e293b",
+                            padding: "10px",
+                            borderRadius: "8px",
+                            fontSize: "12px"
+                          }}>
+                            <p style={{ margin: 0, color: "#e2e8f0" }}>{note.text}</p>
                             {note.fileUrl && (
-                              <div className="pt-1">
+                              <div style={{ marginTop: "6px" }}>
                                 {note.fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                  <img src={note.fileUrl} alt="note pic" className="max-h-32 rounded border border-slate-700" />
+                                  <img src={note.fileUrl} alt="attached" style={{ maxHeight: "100px", borderRadius: "6px" }} />
                                 ) : (
-                                  <a href={note.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline text-[11px]">
-                                    📎 {note.fileName}
-                                  </a>
+                                  <a href={note.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#38bdf8" }}>📎 {note.fileName}</a>
                                 )}
                               </div>
                             )}
-                            <div className="text-[9px] text-slate-500 text-left">{note.timestamp}</div>
+                            <div style={{ fontSize: "9px", color: "#64748b", textAlign: "left", marginTop: "4px" }}>{note.timestamp}</div>
                           </div>
                         ))}
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-slate-500 text-xs">
-                      🔒 هذه الملاحظات سرية ولا يمكن لأحد رؤيتها سوى صاحب الحساب.
+                    <div style={{ fontSize: "12px", color: "#64748b", textAlign: "center", padding: "40px 0" }}>
+                      🔒 هذه الملاحظات سرية ولا يمكن لأحد الاطلاع عليها سواك.
                     </div>
                   )}
                 </div>
