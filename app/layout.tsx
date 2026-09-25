@@ -235,7 +235,6 @@ export default function N7HPortal() {
     setActiveTab("general");
   };
 
-  // شاشة تسجيل الدخول
   if (!currentUser) {
     return (
       <div dir="rtl" style={{
@@ -260,7 +259,6 @@ export default function N7HPortal() {
             <h1 style={{
               fontSize: "24px",
               fontWeight: "900",
-              letterSpacing: "1px",
               color: "#38bdf8",
               margin: "0 0 6px 0"
             }}>N7H PORTAL</h1>
@@ -349,7 +347,7 @@ export default function N7HPortal() {
       display: "flex",
       flexDirection: "column"
     }}>
-      {/* Top Header */}
+      {/* Header */}
       <header style={{
         height: "65px",
         backgroundColor: "#0f172a",
@@ -362,7 +360,7 @@ export default function N7HPortal() {
         top: 0,
         zIndex: 100
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div style={{ display: "flex", itemsCenter: "center", gap: "12px" }}>
           <div style={{
             width: "36px",
             height: "36px",
@@ -377,9 +375,7 @@ export default function N7HPortal() {
           <span style={{ fontSize: "18px", fontWeight: "800", color: "#38bdf8", letterSpacing: "1px" }}>N7H PORTAL</span>
         </div>
 
-        {/* Right side controls */}
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          {/* اختر الوظيفة Button */}
           <div style={{ position: "relative" }}>
             <button
               onClick={() => setShowJobMenu(!showJobMenu)}
@@ -465,9 +461,9 @@ export default function N7HPortal() {
         </div>
       </header>
 
-      {/* Body Area */}
+      {/* Main Container */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {/* Right Sidebar */}
+        {/* Sidebar */}
         <aside style={{
           width: "240px",
           backgroundColor: "#0f172a",
@@ -475,8 +471,7 @@ export default function N7HPortal() {
           padding: "20px 12px",
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
-          shrink: 0
+          gap: "8px"
         }}>
           <div style={{ fontSize: "11px", fontWeight: "bold", color: "#64748b", padding: "0 10px", marginBottom: "4px" }}>
             الأقسام الرئيسية
@@ -540,9 +535,8 @@ export default function N7HPortal() {
           })}
         </aside>
 
-        {/* Main Workspace */}
+        {/* Content Area */}
         <main style={{ flex: 1, padding: "28px", overflowY: "auto" }}>
-          {/* General Tab (Chat Only) */}
           {activeTab === "general" && (
             <div style={{ maxWidth: "800px", margin: "0 auto" }}>
               <div style={{
@@ -552,8 +546,7 @@ export default function N7HPortal() {
                 padding: "20px",
                 display: "flex",
                 flexDirection: "column",
-                height: "600px",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.3)"
+                height: "600px"
               }}>
                 <div style={{
                   borderBottom: "1px solid #1e293b",
@@ -563,11 +556,10 @@ export default function N7HPortal() {
                   justifyContent: "space-between",
                   alignItems: "center"
                 }}>
-                  <h2 style={{ fontSize: "16px", fontWeight: "bold", margin: 0, color: "#f8fafc" }}>💬 الشات العام</h2>
+                  <h2 style={{ fontSize: "16px", fontWeight: "bold", margin: 0 }}>💬 الشات العام</h2>
                   {selectedJob && <span style={{ fontSize: "12px", color: "#38bdf8" }}>الوظيفة الحالية: {selectedJob}</span>}
                 </div>
 
-                {/* Messages Feed */}
                 <div style={{
                   flex: 1,
                   overflowY: "auto",
@@ -597,7 +589,7 @@ export default function N7HPortal() {
                           color: "#fff"
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", marginBottom: "4px" }}>
+                        <div style={{ display: "flex", justifyBetween: "space-between", gap: "12px", marginBottom: "4px" }}>
                           <span style={{ fontSize: "12px", fontWeight: "bold", color: "#7dd3fc" }}>
                             {msg.senderName} {msg.senderJob && `[${msg.senderJob}]`}
                           </span>
@@ -608,9 +600,9 @@ export default function N7HPortal() {
                         {msg.fileUrl && (
                           <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
                             {msg.fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                              <img src={msg.fileUrl} alt="uploaded" style={{ maxHeight: "180px", borderRadius: "8px", display: "block" }} />
+                              <img src={msg.fileUrl} alt="uploaded" style={{ maxHeight: "180px", borderRadius: "8px" }} />
                             ) : (
-                              <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#38bdf8", fontSize: "12px", textDecoration: "underline" }}>
+                              <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#38bdf8", fontSize: "12px" }}>
                                 📎 {msg.fileName || "ملف مرفق"}
                               </a>
                             )}
@@ -621,23 +613,6 @@ export default function N7HPortal() {
                   )}
                 </div>
 
-                {chatFile && (
-                  <div style={{
-                    fontSize: "12px",
-                    color: "#94a3b8",
-                    marginBottom: "8px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    backgroundColor: "#1e293b",
-                    padding: "6px 12px",
-                    borderRadius: "8px"
-                  }}>
-                    <span>📎 المرفق: {chatFile.name}</span>
-                    <span onClick={() => setChatFile(null)} style={{ color: "#f87171", cursor: "pointer" }}>إلغاء</span>
-                  </div>
-                )}
-
-                {/* Input Controls */}
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                   <label style={{
                     backgroundColor: "#1e293b",
@@ -693,10 +668,8 @@ export default function N7HPortal() {
             </div>
           )}
 
-          {/* Member Profile Tab */}
           {activeTab !== "general" && (
             <div style={{ maxWidth: "900px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
-              {/* Account Title Banner */}
               <div style={{
                 backgroundColor: "#0f172a",
                 border: "1px solid #1e293b",
@@ -715,7 +688,6 @@ export default function N7HPortal() {
                   </p>
                 </div>
 
-                {/* Big Report Badge */}
                 <div style={{
                   backgroundColor: "#080c14",
                   border: "1px solid #0284c7",
@@ -730,9 +702,7 @@ export default function N7HPortal() {
                 </div>
               </div>
 
-              {/* Grid Layout: Reports & Notes */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-                {/* Reports Card */}
                 <div style={{
                   backgroundColor: "#0f172a",
                   border: "1px solid #1e293b",
@@ -787,7 +757,6 @@ export default function N7HPortal() {
                     <div style={{ fontSize: "12px", color: "#64748b" }}>🔒 لا يمكنك تعديل تقارير هذا الحساب.</div>
                   )}
 
-                  {/* Reports Log */}
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px" }}>
                     <div style={{ fontSize: "12px", fontWeight: "bold", color: "#94a3b8" }}>السجلات:</div>
                     {activeAccountReports.length === 0 ? (
@@ -832,7 +801,6 @@ export default function N7HPortal() {
                   </div>
                 </div>
 
-                {/* Secret Notes Card */}
                 <div style={{
                   backgroundColor: "#0f172a",
                   border: "1px solid #1e293b",
@@ -878,7 +846,6 @@ export default function N7HPortal() {
                           📎 إرفاق ملف
                           <input type="file" style={{ display: "none" }} onChange={(e) => e.target.files && setNoteFile(e.target.files[0])} />
                         </label>
-                        {noteFile && <span style={{ fontSize: "10px", color: "#cbd5e1" }}>{noteFile.name}</span>}
 
                         <button
                           onClick={handleAddNote}
@@ -897,7 +864,6 @@ export default function N7HPortal() {
                         </button>
                       </div>
 
-                      {/* Notes Feed */}
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
                         {activeAccountNotes.map((note) => (
                           <div key={note.id} style={{
