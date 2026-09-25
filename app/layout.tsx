@@ -2,334 +2,622 @@
 
 import React, { useState, useEffect } from "react";
 
-interface UserProfile {
+interface UserAccount {
   id: string;
   name: string;
   role: string;
-  avatar: string;
   pass: string;
 }
 
-interface Message {
+interface ReportItem {
+  id: string;
+  number: number;
+  timestamp: string;
+}
+
+interface ChatMessage {
   id: string;
   senderId: string;
   senderName: string;
   text: string;
+  fileUrl?: string;
+  fileName?: string;
   timestamp: string;
 }
 
-interface UserData {
-  note: string;
-  report: string;
-}
-
-const USERS: UserProfile[] = [
-  { id: "n7h", name: "N7H", role: "الأدمن", avatar: "👑", pass: "1234" },
-  { id: "azzam", name: "عزام", role: "عضو", avatar: "⚡", pass: "1234" },
-  { id: "rakan", name: "راكان", role: "عضو", avatar: "🛡️", pass: "1234" },
-  { id: "farraj", name: "فراج", role: "عضو", avatar: "🔥", pass: "1234" },
-  { id: "mohammed", name: "محمد", role: "عضو", avatar: "🎯", pass: "1234" },
-  { id: "raad", name: "رعد", role: "عضو", avatar: "⚡", pass: "1234" },
+const ACCOUNTS: UserAccount[] = [
+  { id: "n7h", name: "N7H", role: "الأدمن", pass: "N7H5005" },
+  { id: "azzam", name: "عزام", role: "عضو", pass: "AZM18" },
+  { id: "rakan", name: "راكان", role: "عضو", pass: "RKN20" },
+  { id: "farraj", name: "فراج", role: "عضو", pass: "FRG66" },
+  { id: "mohammed", name: "محمد", role: "عضو", pass: "M7D9" },
+  { id: "raad", name: "رعد", role: "عضو", pass: "R3D33" },
 ];
 
-export default function N7HToolkit() {
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [selectedTab, setSelectedTab] = useState<string>("general");
-  const [chatMessages, setChatMessages] = useState<Message[]>([]);
-  const [newMessageText, setNewMessageText] = useState("");
-  const [userDataMap, setUserDataMap] = useState<Record<string, UserData>>({});
+export default function N7HPCPage() {
+  // Authentication state
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [loginAccountId, setLoginAccountId] = useState<string>("n7h");
+  const [loginPass, setLoginPass] = useState<string>("");
+  const [loginError, setLoginError] = useState<string>("");
 
-  // Login Modal
-  const [loginModalUser, setLoginModalUser] = useState<UserProfile | null>(null);
-  const [inputPassword, setInputPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
+  // Navigation state
+  const [activeTab, setActiveTab] = useState<string>("general");
+  const [subTab, setSubTab] = useState<string>("chat"); // "chat" | "unknown1" .. "unknown5"
+  const [memberSubTab, setMemberSubTab] = useState<"reports" | "notes">("reports");
 
+  // Local storage stored data
+  const [reportsMap, setReportsMap] = useState<Record<string, ReportItem[]>>({});
+  const [notesMap, setNotesMap] = useState<Record<string, string>>({});
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+
+  // Form states
+  const [inputReportNum, setInputReportNum] = useState<string>("");
+  const [reportError, setReportError] = useState<string>("");
+  const [chatText, setChatText] = useState<string>("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Load Initial Data
   useEffect(() => {
-    const savedChat = localStorage.getItem("n7h_chat_messages");
-    if (savedChat) {
-      try { setChatMessages(JSON.parse(savedChat)); } catch (e) {}
-    }
-    const savedData = localStorage.getItem("n7h_user_data");
-    if (savedData) {
-      try { setUserDataMap(JSON.parse(savedData)); } catch (e) {}
-    }
     const savedUser = localStorage.getItem("n7h_current_user");
     if (savedUser) {
       try { setCurrentUser(JSON.parse(savedUser)); } catch (e) {}
     }
+    const savedReports = localStorage.getItem("n7h_reports");
+    if (savedReports) {
+      try { setReportsMap(JSON.parse(savedReports)); } catch (e) {}
+    }
+    const savedNotes = localStorage.getItem("n7h_notes");
+    if (savedNotes) {
+      try { setNotesMap(JSON.parse(savedNotes)); } catch (e) {}
+    }
+    const savedChat = localStorage.getItem("n7h_chat");
+    if (savedChat) {
+      try { setChatMessages(JSON.parse(savedChat)); } catch (e) {}
+    }
   }, []);
 
+  // Save changes to LocalStorage
   useEffect(() => {
-    localStorage.setItem("n7h_chat_messages", JSON.stringify(chatMessages));
+    localStorage.setItem("n7h_reports", JSON.stringify(reportsMap));
+  }, [reportsMap]);
+
+  useEffect(() => {
+    localStorage.setItem("n7h_notes", JSON.stringify(notesMap));
+  }, [notesMap]);
+
+  useEffect(() => {
+    localStorage.setItem("n7h_chat", JSON.stringify(chatMessages));
   }, [chatMessages]);
 
-  useEffect(() => {
-    localStorage.setItem("n7h_user_data", JSON.stringify(userDataMap));
-  }, [userDataMap]);
-
-  const handleSelectUserRequest = (user: UserProfile) => {
-    if (currentUser?.id === user.id) {
-      setSelectedTab(user.id);
-      return;
-    }
-    setLoginModalUser(user);
-    setInputPassword("");
-    setPasswordError("");
-  };
-
-  const handleConfirmLogin = () => {
-    if (!loginModalUser) return;
-    
-    if (inputPassword === loginModalUser.pass) {
-      setCurrentUser(loginModalUser);
-      localStorage.setItem("n7h_current_user", JSON.stringify(loginModalUser));
-      setSelectedTab(loginModalUser.id);
-      setLoginModalUser(null);
-      setInputPassword("");
-      setPasswordError("");
+  // Login handler
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const account = ACCOUNTS.find((a) => a.id === loginAccountId);
+    if (account && account.pass === loginPass) {
+      setCurrentUser(account);
+      localStorage.setItem("n7h_current_user", JSON.stringify(account));
+      setLoginPass("");
+      setLoginError("");
     } else {
-      setPasswordError("كلمة المرور غير صحيحة!");
+      setLoginError("كلمة المرور غير صحيحة!");
     }
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem("n7h_current_user");
-    setSelectedTab("general");
   };
 
-  const getUserData = (userId: string): UserData => {
-    return userDataMap[userId] || { note: "", report: "" };
-  };
+  // Report logic
+  const handleAddReport = () => {
+    if (!currentUser) return;
+    const num = parseInt(inputReportNum, 10);
+    if (isNaN(num) || num < 1 || num > 100) {
+      setReportError("الرجاء إدخال رقم صحيح من 1 إلى 100");
+      return;
+    }
+    setReportError("");
 
-  const updateUserData = (userId: string, updates: Partial<UserData>) => {
-    const currentData = getUserData(userId);
-    setUserDataMap((prev) => ({
-      ...prev,
-      [userId]: { ...currentData, ...updates },
-    }));
-  };
-
-  const handleSendMessage = () => {
-    if (!newMessageText.trim()) return;
-
-    const senderName = currentUser ? currentUser.name : "زائر";
-    const senderId = currentUser ? currentUser.id : "guest";
-
-    const newMsg: Message = {
+    const newReport: ReportItem = {
       id: Date.now().toString(),
-      senderId,
-      senderName,
-      text: newMessageText,
+      number: num,
+      timestamp: new Date().toLocaleString("ar-SA", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+
+    const userReports = reportsMap[currentUser.id] || [];
+    setReportsMap({
+      ...reportsMap,
+      [currentUser.id]: [newReport, ...userReports],
+    });
+    setInputReportNum("");
+  };
+
+  const handleResetReports = () => {
+    if (!currentUser) return;
+    setReportsMap({
+      ...reportsMap,
+      [currentUser.id]: [],
+    });
+  };
+
+  // Note logic
+  const handleNoteChange = (text: string) => {
+    if (!currentUser) return;
+    setNotesMap({
+      ...notesMap,
+      [currentUser.id]: text,
+    });
+  };
+
+  // Chat logic
+  const handleSendMessage = () => {
+    if (!currentUser || (!chatText.trim() && !selectedFile)) return;
+
+    let fileUrl: string | undefined = undefined;
+    let fileName: string | undefined = undefined;
+
+    if (selectedFile) {
+      fileUrl = URL.createObjectURL(selectedFile);
+      fileName = selectedFile.name;
+    }
+
+    const newMsg: ChatMessage = {
+      id: Date.now().toString(),
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      text: chatText,
+      fileUrl,
+      fileName,
       timestamp: new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" }),
     };
 
     setChatMessages((prev) => [...prev, newMsg]);
-    setNewMessageText("");
+    setChatText("");
+    setSelectedFile(null);
   };
 
-  return (
-    <div dir="rtl" className="min-h-screen bg-[#0b0f19] text-slate-100 p-6 font-sans relative">
-      <div className="max-w-7xl mx-auto">
-        
-        {/* Header */}
-        <header className="flex justify-between items-center mb-8 p-5 bg-slate-900/80 border border-slate-800 rounded-2xl backdrop-blur-md shadow-lg">
-          {currentUser ? (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 bg-slate-950/80 px-4 py-2 rounded-xl border border-slate-800">
-                <span className="text-2xl">{currentUser.avatar}</span>
-                <div className="text-right">
-                  <div className="font-bold text-slate-100">{currentUser.name}</div>
-                  <div className="text-xs text-sky-400 font-medium">{currentUser.role}</div>
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2 rounded-lg transition-all"
+  // 1. Render Login Form if Not Authenticated
+  if (!currentUser) {
+    return (
+      <div dir="rtl" className="min-h-screen bg-[#070a12] text-slate-100 flex items-center justify-center p-4 font-sans">
+        <div className="w-full max-w-md bg-[#0d1322] border border-slate-800 rounded-2xl p-6 shadow-2xl">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-black bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+              N7H PC TOOLKIT
+            </h1>
+            <p className="text-slate-400 text-xs mt-1">يرجى تسجيل الدخول للوصول إلى أدوات الحساب</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-2">اختر الحساب:</label>
+              <select
+                value={loginAccountId}
+                onChange={(e) => setLoginAccountId(e.target.value)}
+                className="w-full bg-[#070a12] border border-slate-800 rounded-xl p-3 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
               >
-                تسجيل الخروج
-              </button>
+                {ACCOUNTS.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name} ({acc.role})
+                  </option>
+                ))}
+              </select>
             </div>
-          ) : (
-            <div className="bg-slate-950/80 px-4 py-2 rounded-xl border border-slate-800 text-slate-400 text-sm">
-              غير مسجل الدخول (زائر)
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-2">كلمة المرور:</label>
+              <input
+                type="password"
+                value={loginPass}
+                onChange={(e) => setLoginPass(e.target.value)}
+                placeholder="أدخل كلمة المرور..."
+                className="w-full bg-[#070a12] border border-slate-800 rounded-xl p-3 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            {loginError && <p className="text-red-400 text-xs text-center font-medium">{loginError}</p>}
+
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all text-sm shadow-lg shadow-blue-600/30"
+            >
+              تسجيل الدخول
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Current active user's saved data
+  const currentReports = reportsMap[currentUser.id] || [];
+  const currentNote = notesMap[currentUser.id] || "";
+
+  return (
+    <div dir="rtl" className="min-h-screen bg-[#070a12] text-slate-100 font-sans flex flex-col">
+      {/* Top Navbar */}
+      <header className="h-16 border-b border-slate-800/80 bg-[#0b0f19]/90 backdrop-blur px-6 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-md shadow-blue-500/20">
+            N
+          </div>
+          <span className="font-extrabold text-lg tracking-wider bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">
+            N7H <span className="text-xs text-slate-400 font-normal">PC TOOLKIT</span>
+          </span>
+        </div>
+
+        {/* Search Bar matching design */}
+        <div className="hidden md:flex items-center bg-[#111726] border border-slate-800 rounded-xl px-4 py-1.5 w-96">
+          <svg className="w-4 h-4 text-slate-500 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="ابحث عن أداة أو اسم..."
+            className="bg-transparent text-xs w-full text-slate-200 placeholder-slate-500 focus:outline-none"
+          />
+        </div>
+
+        {/* User Info & Logout */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-[#111726] border border-slate-800 px-3 py-1.5 rounded-xl">
+            <div className="w-7 h-7 rounded-full bg-blue-500/20 border border-blue-400/40 flex items-center justify-center text-blue-400 font-bold text-xs">
+              {currentUser.name.charAt(0)}
+            </div>
+            <div className="text-right">
+              <div className="text-xs font-bold text-slate-100">{currentUser.name}</div>
+              <div className="text-[10px] text-blue-400">{currentUser.role}</div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-xl transition-all"
+          >
+            خروج
+          </button>
+        </div>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Right Sidebar - Tools Navigation */}
+        <aside className="w-64 bg-[#0b0f19] border-l border-slate-800/80 p-4 flex flex-col gap-2 shrink-0">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase px-3 mb-1">الأدوات الرئيسية</div>
+
+          {/* General Tool */}
+          <button
+            onClick={() => setActiveTab("general")}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              activeTab === "general"
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 font-bold"
+                : "text-slate-400 hover:bg-[#111726] hover:text-slate-200"
+            }`}
+          >
+            <span className="text-base">🌐</span>
+            <span>عام</span>
+          </button>
+
+          <div className="text-[11px] font-semibold text-slate-500 uppercase px-3 mt-4 mb-1">الحسابات والأعضاء</div>
+
+          {/* Member Accounts List */}
+          {ACCOUNTS.map((acc) => {
+            const isActive = activeTab === acc.id;
+            const isMe = currentUser.id === acc.id;
+            return (
+              <button
+                key={acc.id}
+                onClick={() => setActiveTab(acc.id)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  isActive
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30 font-bold"
+                    : "text-slate-400 hover:bg-[#111726] hover:text-slate-200"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">👤</span>
+                  <span>{acc.name}</span>
+                </div>
+                {isMe && (
+                  <span className="text-[9px] bg-blue-500/30 border border-blue-400/40 text-blue-200 px-1.5 py-0.5 rounded">
+                    حسابك
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </aside>
+
+        {/* Main Content Workspace */}
+        <main className="flex-1 bg-[#070a12] p-6 overflow-y-auto">
+          {/* ---------------- GENERAL TOOL TAB ---------------- */}
+          {activeTab === "general" && (
+            <div className="space-y-6 max-w-5xl mx-auto">
+              {/* Top Sub-navigation for General Tool */}
+              <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto">
+                <button
+                  onClick={() => setSubTab("chat")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    subTab === "chat"
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                      : "bg-[#0d1322] text-slate-400 border border-slate-800 hover:bg-[#131b30]"
+                  }`}
+                >
+                  💬 شات
+                </button>
+                {[1, 2, 3, 4, 5].map((i) => {
+                  const key = `unknown${i}`;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setSubTab(key)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                        subTab === key
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                          : "bg-[#0d1322] text-slate-400 border border-slate-800 hover:bg-[#131b30]"
+                      }`}
+                    >
+                      ⚙️ مجهول {i}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Sub-tab 1: CHAT */}
+              {subTab === "chat" && (
+                <div className="bg-[#0d1322] border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col h-[600px]">
+                  <h2 className="text-md font-bold text-slate-200 border-b border-slate-800 pb-3 mb-4 flex items-center gap-2">
+                    <span>💬</span> الشات العام
+                  </h2>
+
+                  {/* Messages Feed */}
+                  <div className="flex-1 overflow-y-auto space-y-3 p-2 bg-[#070a12] rounded-xl border border-slate-800/60 mb-4">
+                    {chatMessages.length === 0 ? (
+                      <div className="h-full flex items-center justify-center text-slate-600 text-xs">
+                        لا توجد رسائل في الشات العام حالياً.
+                      </div>
+                    ) : (
+                      chatMessages.map((msg) => (
+                        <div
+                          key={msg.id}
+                          className={`p-3 rounded-xl border max-w-lg ${
+                            msg.senderId === currentUser.id
+                              ? "mr-auto bg-blue-950/40 border-blue-800/50 text-slate-100"
+                              : "ml-auto bg-[#111726] border-slate-800 text-slate-200"
+                          }`}
+                        >
+                          <div className="flex justify-between items-center gap-4 mb-1">
+                            <span className="font-bold text-xs text-blue-400">{msg.senderName}</span>
+                            <span className="text-[10px] text-slate-500">{msg.timestamp}</span>
+                          </div>
+                          {msg.text && <p className="text-xs leading-relaxed text-slate-200 whitespace-pre-wrap">{msg.text}</p>}
+
+                          {/* File Attachment Output */}
+                          {msg.fileUrl && (
+                            <div className="mt-2 pt-2 border-t border-slate-800">
+                              {msg.fileName?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                <img src={msg.fileUrl} alt="attachment" className="max-h-48 rounded-lg border border-slate-700 object-cover" />
+                              ) : (
+                                <a
+                                  href={msg.fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-2 text-xs text-blue-400 hover:underline bg-[#070a12] p-2 rounded-lg border border-slate-800"
+                                >
+                                  📎 {msg.fileName || "تحميل الملف المرفق"}
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Attachment Preview */}
+                  {selectedFile && (
+                    <div className="mb-2 px-3 py-1.5 bg-[#111726] border border-slate-800 rounded-lg flex items-center justify-between text-xs text-slate-300">
+                      <span>📎 المرفق: {selectedFile.name}</span>
+                      <button onClick={() => setSelectedFile(null)} className="text-red-400 hover:underline text-xs">
+                        إلغاء
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Input Box */}
+                  <div className="flex items-center gap-2 bg-[#070a12] p-2 rounded-xl border border-slate-800">
+                    <label className="cursor-pointer bg-[#111726] hover:bg-slate-800 text-slate-300 p-2 rounded-lg border border-slate-800 transition-all text-xs flex items-center justify-center">
+                      📎
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setSelectedFile(e.target.files[0]);
+                          }
+                        }}
+                      />
+                    </label>
+
+                    <input
+                      type="text"
+                      value={chatText}
+                      onChange={(e) => setChatText(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                      placeholder="اكتب رسالتك هنا..."
+                      className="flex-1 bg-transparent border-0 text-slate-100 placeholder-slate-500 text-xs focus:outline-none px-2"
+                    />
+
+                    <button
+                      onClick={handleSendMessage}
+                      className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition-all shadow-md shadow-blue-600/30"
+                    >
+                      إرسال
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-tabs 2-6: UNKNOWN */}
+              {subTab.startsWith("unknown") && (
+                <div className="bg-[#0d1322] border border-slate-800 rounded-2xl p-12 text-center shadow-xl">
+                  <div className="text-4xl mb-3">🛠️</div>
+                  <h3 className="text-xl font-bold text-slate-200 mb-2">جاري العمل على السكربت</h3>
+                  <p className="text-slate-500 text-xs">هذه الأداة قيد التطوير والتحديث وسوف تتاح قريباً.</p>
+                </div>
+              )}
             </div>
           )}
 
-          <div className="text-center">
-            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">
-              N7H Toolkit
-            </h1>
-            <p className="text-slate-400 text-sm mt-1">منصة الأدوات والتواصل المشتركة</p>
-          </div>
-        </header>
+          {/* ---------------- MEMBER ACCOUNT TABS ---------------- */}
+          {activeTab !== "general" && (
+            <div className="max-w-5xl mx-auto space-y-6">
+              {/* Account Title Header */}
+              <div className="bg-[#0d1322] border border-slate-800 rounded-2xl p-5 shadow-lg flex items-center justify-between">
+                <div>
+                  <h1 className="text-xl font-extrabold text-slate-100">
+                    حساب: {ACCOUNTS.find((a) => a.id === activeTab)?.name}
+                  </h1>
+                  <p className="text-slate-500 text-xs mt-1">
+                    {currentUser.id === activeTab ? "أنت في قسمك الخاص" : "أنت تتصفح هذا القسم كـ زائر / عضو آخر"}
+                  </p>
+                </div>
 
-        {/* Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          
-          {/* Main Content */}
-          <main className="md:col-span-3 bg-slate-900/60 p-6 rounded-2xl border border-slate-800 shadow-xl">
-            
-            {/* General Chat Section */}
-            {selectedTab === "general" && (
-              <div>
-                <h2 className="text-xl font-bold text-slate-100 border-b border-slate-800 pb-3 mb-4">عام شات</h2>
-                
-                <div className="h-[420px] overflow-y-auto bg-slate-950/80 border border-slate-800 rounded-xl p-4 mb-4 space-y-3">
-                  {chatMessages.length === 0 ? (
-                    <div className="text-slate-500 text-center mt-40">لا توجد رسائل في الشات العام حالياً.</div>
-                  ) : (
-                    chatMessages.map((msg) => (
-                      <div key={msg.id} className="bg-slate-900 border-r-4 border-sky-500 p-3 rounded-lg">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="font-bold text-sky-400 text-sm">{msg.senderName}</span>
-                          <span className="text-[10px] text-slate-500">{msg.timestamp}</span>
+                {/* Sub-tools Switcher */}
+                <div className="flex bg-[#070a12] p-1 rounded-xl border border-slate-800">
+                  <button
+                    onClick={() => setMemberSubTab("reports")}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      memberSubTab === "reports" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    📊 تقاريري
+                  </button>
+                  <button
+                    onClick={() => setMemberSubTab("notes")}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      memberSubTab === "notes" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    📝 الملاحظات
+                  </button>
+                </div>
+              </div>
+
+              {/* 1. REPORTS SUB-TAB */}
+              {memberSubTab === "reports" && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Right Input Form (Only for account owner) */}
+                  <div className="md:col-span-1 bg-[#0d1322] border border-slate-800 rounded-2xl p-5 shadow-lg h-fit">
+                    <h3 className="text-sm font-bold text-slate-200 mb-4 border-b border-slate-800 pb-2">
+                      إضافة تقرير جديد
+                    </h3>
+
+                    {currentUser.id === activeTab ? (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-xs text-slate-400 mb-1">أدخل رقم التقرير (1 - 100):</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            value={inputReportNum}
+                            onChange={(e) => setInputReportNum(e.target.value)}
+                            placeholder="مثال: 45"
+                            className="w-full bg-[#070a12] border border-slate-800 rounded-xl p-3 text-slate-100 text-sm focus:outline-none focus:border-blue-500"
+                          />
+                          {reportError && <p className="text-red-400 text-[11px] mt-1">{reportError}</p>}
                         </div>
-                        <div className="text-slate-200 text-sm">{msg.text}</div>
+
+                        <button
+                          onClick={handleAddReport}
+                          className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-md shadow-blue-600/20"
+                        >
+                          تأكيد التقرير
+                        </button>
+
+                        <button
+                          onClick={handleResetReports}
+                          className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 font-bold py-2 rounded-xl text-xs transition-all mt-2"
+                        >
+                          إعادة تعيين
+                        </button>
                       </div>
-                    ))
+                    ) : (
+                      <div className="text-slate-500 text-xs text-center py-6">
+                        🔒 لا يمكنك إضافة أو تعديل تقارير هذا الحساب (فقط صاحب الحساب يستطيع التحكم).
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Left Output List (Visible) */}
+                  <div className="md:col-span-2 bg-[#0d1322] border border-slate-800 rounded-2xl p-5 shadow-lg min-h-[300px]">
+                    <h3 className="text-sm font-bold text-slate-200 mb-4 border-b border-slate-800 pb-2">
+                      سجلات التقارير المرسلة
+                    </h3>
+
+                    {currentReports.length === 0 ? (
+                      <div className="text-center text-slate-600 text-xs py-16">لا توجد تقارير مسجلة حتى الآن.</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {currentReports.map((item) => (
+                          <div
+                            key={item.id}
+                            className="bg-[#070a12] border border-slate-800/80 p-4 rounded-xl flex justify-between items-center"
+                          >
+                            <div>
+                              <div className="text-sm font-bold text-blue-400">تقرير رقم [{item.number}]</div>
+                              <div className="text-[10px] text-slate-500 mt-0.5">التاريخ والوقت: {item.timestamp}</div>
+                            </div>
+                            <span className="text-xs bg-blue-500/10 border border-blue-500/30 text-blue-300 px-2.5 py-1 rounded-lg">
+                              مكتمل
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 2. NOTES SUB-TAB (Confidential) */}
+              {memberSubTab === "notes" && (
+                <div className="bg-[#0d1322] border border-slate-800 rounded-2xl p-5 shadow-lg">
+                  <h3 className="text-sm font-bold text-slate-200 mb-4 border-b border-slate-800 pb-2 flex items-center justify-between">
+                    <span>📝 الملاحظات السرية</span>
+                    {currentUser.id === activeTab && <span className="text-[10px] text-emerald-400">🔒 خاصة بك فقط</span>}
+                  </h3>
+
+                  {currentUser.id === activeTab ? (
+                    <div>
+                      <textarea
+                        value={currentNote}
+                        onChange={(e) => handleNoteChange(e.target.value)}
+                        placeholder="اكتب ملاحظاتك الخاصة هنا... (تُحفظ تلقائياً)"
+                        rows={8}
+                        className="w-full bg-[#070a12] border border-slate-800 rounded-xl p-4 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 leading-relaxed"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-2">* جميع الملاحظات تنحفظ تلقائياً ولا يستطيع أي شخص آخر رؤيتها.</p>
+                    </div>
+                  ) : (
+                    <div className="text-center py-16 bg-[#070a12] rounded-xl border border-slate-800/60 p-6">
+                      <div className="text-3xl mb-2">🔒</div>
+                      <h4 className="text-sm font-bold text-slate-300 mb-1">الملاحظات سرية</h4>
+                      <p className="text-slate-500 text-xs">لا يمكنك رؤية ملاحظات هذا الحساب لأنها خاصة بصاحب الحساب فقط.</p>
+                    </div>
                   )}
                 </div>
-
-                <div className="flex gap-2 items-center bg-slate-950 p-2 rounded-xl border border-slate-800">
-                  <input
-                    type="text"
-                    value={newMessageText}
-                    onChange={(e) => setNewMessageText(e.target.value)}
-                    placeholder={currentUser ? "اكتب رسالتك..." : "اكتب رسالتك كزائر..."}
-                    className="flex-1 bg-transparent border-0 text-slate-100 placeholder-slate-500 focus:outline-none text-sm px-3"
-                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                  />
-                  <button onClick={handleSendMessage} className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-5 py-2 rounded-lg text-sm transition-all">
-                    إرسال
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* User Private Section */}
-            {selectedTab !== "general" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-100 border-b border-slate-800 pb-3">
-                  قسم العضو: {USERS.find((u) => u.id === selectedTab)?.name}
-                </h2>
-                
-                <div className="bg-slate-950/60 p-4 rounded-xl border border-sky-500/30">
-                  <h3 className="text-md font-bold text-sky-400 mb-1">📌 [مهم]</h3>
-                  <textarea
-                    value={getUserData(selectedTab).note}
-                    onChange={(e) => updateUserData(selectedTab, { note: e.target.value })}
-                    placeholder="اكتب الملاحظات الهامة هنا..."
-                    rows={4}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500"
-                  />
-                </div>
-
-                <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
-                  <h3 className="text-md font-bold text-slate-200 mb-3">كتابة تقرير</h3>
-                  <textarea
-                    value={getUserData(selectedTab).report}
-                    onChange={(e) => updateUserData(selectedTab, { report: e.target.value })}
-                    placeholder="اكتب تفاصيل التقرير..."
-                    rows={4}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500"
-                  />
-                </div>
-              </div>
-            )}
-
-          </main>
-
-          {/* Sidebar */}
-          <aside className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 h-fit">
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">الأقسام والأعضاء</h3>
-            
-            <button
-              onClick={() => setSelectedTab("general")}
-              className={`w-full p-3 rounded-xl mb-6 font-bold flex items-center justify-between transition-all ${
-                selectedTab === "general" ? "bg-sky-600 text-white shadow-lg shadow-sky-600/30" : "bg-slate-950 text-slate-300 hover:bg-slate-800"
-              }`}
-            >
-              <span>🌐 عام شات</span>
-            </button>
-
-            <h4 className="text-xs text-slate-500 mb-3 font-semibold">تسجيل الدخول / اختيار الحساب:</h4>
-            <div className="space-y-2">
-              {USERS.map((user) => {
-                const isCurrent = currentUser?.id === user.id;
-                const isSelected = selectedTab === user.id;
-                return (
-                  <button
-                    key={user.id}
-                    onClick={() => handleSelectUserRequest(user)}
-                    className={`w-full p-3 rounded-xl border flex justify-between items-center transition-all ${
-                      isCurrent ? "border-sky-500/50 bg-sky-950/20" : "border-slate-800 bg-slate-950/40"
-                    } ${isSelected ? "bg-slate-800 border-sky-400" : "hover:bg-slate-800/60"}`}
-                  >
-                    <span className="font-medium text-slate-200">{user.avatar} {user.name}</span>
-                    {isCurrent ? (
-                      <span className="text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-full font-semibold">
-                        حسابك النشط
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-slate-500 border border-slate-800 px-2 py-0.5 rounded-full">
-                        🔒 دخول
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+              )}
             </div>
-          </aside>
-
-        </div>
-
+          )}
+        </main>
       </div>
-
-      {/* Login Modal */}
-      {loginModalUser && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-3xl">{loginModalUser.avatar}</span>
-              <div>
-                <h3 className="text-lg font-bold text-slate-100">تسجيل الدخول: {loginModalUser.name}</h3>
-                <p className="text-xs text-slate-400">أدخل كلمة المرور للوصول للحساب</p>
-              </div>
-            </div>
-
-            <input
-              type="password"
-              value={inputPassword}
-              onChange={(e) => setInputPassword(e.target.value)}
-              placeholder="كلمة المرور..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 mb-2 text-center text-lg"
-              onKeyDown={(e) => e.key === "Enter" && handleConfirmLogin()}
-              autoFocus
-            />
-
-            {passwordError && (
-              <p className="text-red-400 text-xs mb-3 text-center">{passwordError}</p>
-            )}
-
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={handleConfirmLogin}
-                className="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl transition-all text-sm"
-              >
-                تأكيد الدخول
-              </button>
-              <button
-                onClick={() => setLoginModalUser(null)}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium px-4 py-2.5 rounded-xl transition-all text-sm"
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
