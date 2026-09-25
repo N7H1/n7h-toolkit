@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 
 interface UserProfile {
   id: string;
@@ -27,7 +27,10 @@ interface ReportEntry {
 }
 
 interface UserPrivateData {
-  importantNote: string;
+  note: string;
+  noteFileUrl?: string;
+  noteFileName?: string;
+  noteFileType?: "image" | "file";
   currentReport: string;
   reportHistory: ReportEntry[];
 }
@@ -41,41 +44,18 @@ const USERS: UserProfile[] = [
   { id: "raad", name: "رعد", role: "عضو", avatar: "⚡" },
 ];
 
-const COMMANDS_LIST = [
-  { label: "فتح شنطة", command: 'bind keyboard "0" "trunk"' },
-  { label: "فتح كبوت", command: 'bind keyboard "0" "hood"' },
-  { label: "حمل لاعب", command: 'bind keyboard "0" "carry"' },
-  { label: "تهديد رهينة", command: 'bind KEYBOARD "0" "takehostage"' },
-  { label: "إلغاء الاختصار", command: 'unbind keyboard 0' },
-  { label: "يسوي ضغط", command: 'bind keyboard "1" "e pushup"' },
-  { label: "اختصار التلفيت", command: 'bind keyboard "0" "quit"' },
-  { label: "اختصار التبول", command: 'bind KEYBOARD 8 "e pee"' },
-  { label: "اختصار الانبطاح", command: 'bind KEYBOARD 4 "e passout"' },
-  { label: "اختصار التصبيع", command: 'bind KEYBOARD 7 "e finger2"' },
-  { label: "اختصار الحبتين", command: 'bind keyboard "Z" "e peace"' },
-  { label: "اختصار فتح الكبوت", command: 'bind keyboard "1" "Hood"' },
-  { label: "اختصار فتح الشنطة", command: 'bind keyboard "2" "Trunk"' },
-  { label: "اختصار تصفير", command: 'bind keyboard 0 "e whistle"' },
-  { label: "اختصار الصفعة", command: 'bind keyboard 0 "e slap"' },
-  { label: "اختصار الانبطاح", command: 'bind keyboard 0 "e prone"' },
-  { label: "اختصار جلوس تصوير", command: 'bind keyboard 0 "e amsitpost"' },
-  { label: "اختصار الحبتين", command: 'bind keyboard 0 "e vsign"' },
-  { label: "اختصار الحضن", command: 'bind keyboard 0 "e hug"' },
-  { label: "اختصار السيلفي", command: 'bind keyboard 0 "e selfie4"' },
-  { label: "اختصار التحية", command: 'bind keyboard "q" "e salute"' },
-];
-
 export default function N7HToolkit() {
   const [currentUser, setCurrentUser] = useState<UserProfile>(USERS[0]);
   const [selectedTab, setSelectedTab] = useState<string>("general");
-  const [generalSubTab, setGeneralSubTab] = useState<"chat" | "commands">("chat");
+  
+  // تبويبات العام (شات + 9 أيقونات مجهول)
+  const [generalSubTab, setGeneralSubTab] = useState<string>("chat");
 
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [newMessageText, setNewMessageText] = useState("");
-  const [attachedFile, setAttachedFile] = useState<{ url: string; name: string; type: "image" | "file" } | null>(null);
+  const [attachedChatFile, setAttachedChatFile] = useState<{ url: string; name: string; type: "image" | "file" } | null>(null);
 
   const [userPrivateData, setUserPrivateData] = useState<Record<string, UserPrivateData>>({});
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const savedChat = localStorage.getItem("n7h_chat_messages");
@@ -108,7 +88,7 @@ export default function N7HToolkit() {
   const getCurrentPrivateData = (): UserPrivateData => {
     return (
       userPrivateData[currentUser.id] || {
-        importantNote: "",
+        note: "",
         currentReport: "",
         reportHistory: [],
       }
@@ -123,14 +103,15 @@ export default function N7HToolkit() {
     }));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // رفع ملف في الشات العام
+  const handleChatFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const isImage = file.type.startsWith("image/");
     const reader = new FileReader();
     reader.onload = (event) => {
-      setAttachedFile({
+      setAttachedChatFile({
         url: event.target?.result as string,
         name: file.name,
         type: isImage ? "image" : "file",
@@ -139,23 +120,40 @@ export default function N7HToolkit() {
     reader.readAsDataURL(file);
   };
 
+  // رفع ملف في قسم الملاحظات
+  const handleNoteFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isImage = file.type.startsWith("image/");
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      updateCurrentPrivateData({
+        noteFileUrl: event.target?.result as string,
+        noteFileName: file.name,
+        noteFileType: isImage ? "image" : "file",
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSendMessage = () => {
-    if (!newMessageText.trim() && !attachedFile) return;
+    if (!newMessageText.trim() && !attachedChatFile) return;
 
     const newMsg: Message = {
       id: Date.now().toString(),
       senderId: currentUser.id,
       senderName: currentUser.name,
       text: newMessageText,
-      fileUrl: attachedFile?.url,
-      fileName: attachedFile?.name,
-      fileType: attachedFile?.type,
+      fileUrl: attachedChatFile?.url,
+      fileName: attachedChatFile?.name,
+      fileType: attachedChatFile?.type,
       timestamp: new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" }),
     };
 
     setChatMessages((prev) => [...prev, newMsg]);
     setNewMessageText("");
-    setAttachedFile(null);
+    setAttachedChatFile(null);
   };
 
   const handleSaveReportToHistory = () => {
@@ -174,14 +172,11 @@ export default function N7HToolkit() {
     });
   };
 
-  const handleCopyCommand = (commandText: string, index: number) => {
-    navigator.clipboard.writeText(commandText);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
-
-  // ترتيب الحساب الحالي ليظهر أولاً في القائمة
+  // ترتيب الحساب الحالي ليظهر أولاً في القائمة الجانبية
   const sortedUsers = [currentUser, ...USERS.filter((u) => u.id !== currentUser.id)];
+
+  // قائمة 9 أيقونات مجهول
+  const unknownTabs = Array.from({ length: 9 }, (_, i) => `unknown_${i + 1}`);
 
   return (
     <div dir="rtl" style={{ fontFamily: "sans-serif", padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
@@ -200,9 +195,9 @@ export default function N7HToolkit() {
 
       <hr />
 
-      {/* Content Layout */}
+      {/* Main Layout */}
       <div style={{ display: "flex", gap: "20px", marginTop: "20px" }}>
-        {/* Right Sidebar */}
+        {/* Sidebar */}
         <aside style={{ width: "220px" }}>
           <h3>الأعضاء والأقسام</h3>
           <button
@@ -215,7 +210,7 @@ export default function N7HToolkit() {
               cursor: "pointer",
             }}
           >
-            🌐 العام
+            🌐 عام
           </button>
 
           <h4>اختر الحساب (حسابك بالأعلى):</h4>
@@ -240,36 +235,43 @@ export default function N7HToolkit() {
           ))}
         </aside>
 
-        {/* Main Content Area */}
+        {/* Content Area */}
         <main style={{ flex: 1 }}>
           {selectedTab === "general" && (
             <div>
-              {/* Tabs inside General */}
-              <div style={{ marginBottom: "15px" }}>
+              {/* General Sub-Tabs: 1 Chat + 9 Unknown Icons */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "15px" }}>
                 <button
                   onClick={() => setGeneralSubTab("chat")}
                   style={{
-                    padding: "8px 16px",
-                    marginLeft: "10px",
+                    padding: "8px 14px",
                     fontWeight: generalSubTab === "chat" ? "bold" : "normal",
                     cursor: "pointer",
+                    backgroundColor: generalSubTab === "chat" ? "#eee" : "#fff",
+                    border: "1px solid #ccc"
                   }}
                 >
-                  💬 الشات العام
+                  💬 شات
                 </button>
-                <button
-                  onClick={() => setGeneralSubTab("commands")}
-                  style={{
-                    padding: "8px 16px",
-                    fontWeight: generalSubTab === "commands" ? "bold" : "normal",
-                    cursor: "pointer",
-                  }}
-                >
-                  📜 الأوامر
-                </button>
+
+                {unknownTabs.map((tabKey, idx) => (
+                  <button
+                    key={tabKey}
+                    onClick={() => setGeneralSubTab(tabKey)}
+                    style={{
+                      padding: "8px 12px",
+                      fontWeight: generalSubTab === tabKey ? "bold" : "normal",
+                      cursor: "pointer",
+                      backgroundColor: generalSubTab === tabKey ? "#eee" : "#fff",
+                      border: "1px solid #ccc"
+                    }}
+                  >
+                    ❓ مجهول {idx + 1}
+                  </button>
+                ))}
               </div>
 
-              {/* General Chat View */}
+              {/* Chat View */}
               {generalSubTab === "chat" && (
                 <div>
                   <div style={{ minHeight: "300px", border: "1px solid #ccc", padding: "10px", marginBottom: "10px" }}>
@@ -296,18 +298,14 @@ export default function N7HToolkit() {
                     )}
                   </div>
 
-                  {attachedFile && (
+                  {attachedChatFile && (
                     <div style={{ marginBottom: "5px", fontSize: "12px", color: "green" }}>
-                      ملف مرفق جاهز للإرسال: {attachedFile.name}
+                      ملف مرفق جاهز للإرسال: {attachedChatFile.name}
                     </div>
                   )}
 
                   <div style={{ display: "flex", gap: "5px" }}>
-                    <input
-                      type="file"
-                      onChange={handleFileUpload}
-                      style={{ width: "180px" }}
-                    />
+                    <input type="file" onChange={handleChatFileUpload} style={{ width: "180px" }} />
                     <input
                       type="text"
                       value={newMessageText}
@@ -323,55 +321,52 @@ export default function N7HToolkit() {
                 </div>
               )}
 
-              {/* Commands View */}
-              {generalSubTab === "commands" && (
-                <div>
-                  <h3>أوامر واختصارات FiveM السريعة</h3>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {COMMANDS_LIST.map((cmd, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          display: "flex",
-                          justify: "space-between",
-                          alignItems: "center",
-                          padding: "8px",
-                          border: "1px solid #ddd",
-                        }}
-                      >
-                        <div>
-                          <strong>{cmd.label}:</strong> <code dir="ltr">{cmd.command}</code>
-                        </div>
-                        <button onClick={() => handleCopyCommand(cmd.command, idx)} style={{ cursor: "pointer" }}>
-                          {copiedIndex === idx ? "تم النسخ!" : "نسخ"}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+              {/* Unknown Tabs Placeholder Message */}
+              {generalSubTab !== "chat" && (
+                <div style={{ border: "1px dashed #aaa", padding: "40px", textAlign: "center", marginTop: "20px" }}>
+                  <h3 style={{ color: "#555" }}>⚙️ جاري البرمجة على السكربت...</h3>
+                  <p style={{ color: "#888", fontSize: "14px" }}>هذا القسم قيد التطوير والتجهيز حالياً.</p>
                 </div>
               )}
             </div>
           )}
 
-          {/* User Private Space */}
+          {/* User Specific Section */}
           {selectedTab !== "general" && (
             <div>
               <h2>قسم العضو: {currentUser.name}</h2>
               <hr />
 
-              {/* 1. Important Section (Private ONLY to account owner) */}
-              <div style={{ marginTop: "15px", border: "1px solid red", padding: "10px" }}>
-                <h3 style={{ color: "red", marginTop: 0 }}>[مهم] - ملاحظة سرية خاصة</h3>
+              {/* 1. Notes Section (Private to current account owner) */}
+              <div style={{ marginTop: "15px", border: "1px solid #333", padding: "12px" }}>
+                <h3 style={{ marginTop: 0 }}>📌 [الملاحظات]</h3>
                 <p style={{ fontSize: "12px", color: "#666" }}>
-                  هذا القسم يظهر لك فقط ولن يستطيع باقي الأعضاء رؤيته.
+                  هذا القسم خاص بك فقط، ولا يمكن لأي عضو آخر الاطلاع عليه.
                 </p>
                 <textarea
-                  value={getCurrentPrivateData().importantNote}
-                  onChange={(e) => updateCurrentPrivateData({ importantNote: e.target.value })}
-                  placeholder="اكتب ملاحظاتك المهمة هنا..."
+                  value={getCurrentPrivateData().note}
+                  onChange={(e) => updateCurrentPrivateData({ note: e.target.value })}
+                  placeholder="اكتب ملاحظاتك الشخصية هنا..."
                   rows={3}
-                  style={{ width: "100%", padding: "8px" }}
+                  style={{ width: "100%", padding: "8px", marginBottom: "10px" }}
                 />
+
+                {/* Upload Image/File inside Notes */}
+                <div>
+                  <label style={{ fontSize: "12px", display: "block", marginBottom: "5px" }}>إرفاق صورة أو ملف مع الملاحظات:</label>
+                  <input type="file" onChange={handleNoteFileUpload} />
+                  {getCurrentPrivateData().noteFileUrl && (
+                    <div style={{ marginTop: "10px" }}>
+                      {getCurrentPrivateData().noteFileType === "image" ? (
+                        <img src={getCurrentPrivateData().noteFileUrl} alt="ملاحظة مصورة" style={{ maxWidth: "200px", display: "block" }} />
+                      ) : (
+                        <a href={getCurrentPrivateData().noteFileUrl} download={getCurrentPrivateData().noteFileName}>
+                          📎 {getCurrentPrivateData().noteFileName}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* 2. Current Report */}
@@ -392,15 +387,15 @@ export default function N7HToolkit() {
                 </button>
               </div>
 
-              {/* 3. Report History */}
+              {/* 3. Reports History */}
               <div style={{ marginTop: "15px", border: "1px solid #ccc", padding: "10px" }}>
                 <h3>سجل التقارير والأرشيف</h3>
                 {getCurrentPrivateData().reportHistory.length === 0 ? (
                   <p style={{ color: "#888" }}>لا يوجد أرشيف تقارير سابقة.</p>
                 ) : (
                   getCurrentPrivateData().reportHistory.map((entry) => (
-                    <div key={entry.id} style={{ borderBottom: "1px solid #eee", padding: "5px 0" }}>
-                      <small style={{ color: "#666" }}>تاريخ الحفظ: {entry.timestamp}</small>
+                    <div key={entry.id} style={{ borderBottom: "1px solid #eee", padding: "8px 0" }}>
+                      <small style={{ color: "#666" }}>تاريخ ووقت الحفظ: {entry.timestamp}</small>
                       <p style={{ margin: "5px 0" }}>{entry.text}</p>
                     </div>
                   ))
